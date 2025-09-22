@@ -14,7 +14,7 @@ const MesaSchema = new Schema({
   status: {
     type: String,
     required: true,
-    enum: ["livre", "ocupada", "aguardando_pagamento"],
+    enum: ['livre', 'ocupada', 'aguardando_atendimento', 'aguardando_pagamento'],
     default: "livre",
   },
   conta_ativa: {

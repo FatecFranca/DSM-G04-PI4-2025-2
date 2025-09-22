@@ -16,8 +16,12 @@ const PedidoSchema = new Schema(
     },
     garcom_id: {
       type: Schema.Types.ObjectId,
-      ref: "Garcom",
+      ref: "Usuario",
       required: true,
+    },
+    cozinheiro_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Usuario",
     },
     itens: [PedidoItem],
     status: {
