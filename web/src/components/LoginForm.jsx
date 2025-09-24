@@ -52,7 +52,7 @@ const LoginForm = ({ onBackToRegister, onBackToHome }) => {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Bem-vindo de volta</h1>
-          <p className="text-neutral-600">Entre na sua conta DrinkFlow</p>
+          <p className="text-neutral-600">Entre na sua conta ClickServe</p>
         </div>
 
         {/* Form */}
