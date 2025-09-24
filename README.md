@@ -9,7 +9,7 @@
 
 ### 📋 Contextualização do Projeto
 
-O **DrinkFlow** surge como uma solução inovadora para um problema real enfrentado por estabelecimentos do setor de bebidas: a **dificuldade de gerenciar eficientemente o estoque, vendas e relatórios** de forma integrada e em tempo real.
+O **ClickServe** surge como uma solução inovadora para um problema real enfrentado por estabelecimentos do setor de bebidas: a **dificuldade de gerenciar eficientemente o estoque, vendas e relatórios** de forma integrada e em tempo real.
 
 ### 🎯 Problema Identificado
 
@@ -27,7 +27,7 @@ Essa gestão inadequada resulta em:
 
 ### 💡 Solução Proposta
 
-O **DrinkFlow** é um sistema web responsivo que oferece:
+O **ClickServe** é um sistema web responsivo que oferece:
 
 - 📦 **Gestão Inteligente de Estoque** - Controle em tempo real do inventário
 - 📊 **Dashboard de Vendas** - Visualização clara das vendas diárias/mensais
