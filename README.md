@@ -1,6 +1,6 @@
 # DSM-G04-PI4-2025-2
 
-## 🍺 DrinkFlow - Sistema de Gestão de Bebidas
+## 🍺 ClickServe - Sistema de Gestão de Bebidas
 
 **Projeto Integrador IV - Desenvolvimento de Software Multiplataforma**  
 **Fatec Franca - Grupo 04 - 2025.2**
