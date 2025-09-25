@@ -8,30 +8,36 @@ const ContaSchema = new Schema(
       ref: "Mesa",
       required: true,
     },
-    pedidos: [{
+    pedidos: [
+      {
         type: Schema.Types.ObjectId,
-        ref: 'Pedido'
-    }],
+        ref: "Pedido",
+      },
+    ],
     valor_total: {
-        type: Number,
-        default: 0
+      type: Number,
+      default: 0,
     },
     valor_pago: {
-        type: Number,
-        default: 0
+      type: Number,
+      default: 0,
     },
     status: {
-        type: String,
-        required: true,
-        enum: ['aberta', 'fechado', 'cancelado'],
-        default: 'aberta'
+      type: String,
+      required: true,
+      enum: ["aberta", "fechado", "cancelado"],
+      default: "aberta",
+    },
+    empresa: {
+      type: Schema.Types.ObjectId,
+      ref: "Empresa",
+      required: true,
     },
     timestamp_fechamento: {
-        type: Date
-    }
-
+      type: Date,
+    },
   },
-  { timestamp: {createdAt: 'timestamp_abertura'} }
+  { timestamp: { createdAt: "timestamp_abertura" } }
 );
 
 const Conta = mongoose.model("Conta", ContaSchema);

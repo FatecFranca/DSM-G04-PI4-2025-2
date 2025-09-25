@@ -20,8 +20,13 @@ const CardapioSchema = new Schema(
       enum: ["bebida", "prato_principal", "sobremesa", "entrada"],
     },
     disponivel: {
-        type: Boolean,
-        default: true
+      type: Boolean,
+      default: true,
+    },
+    empresa: {
+      type: Schema.Types.ObjectId,
+      ref: "Empresa",
+      required: true,
     }
   },
   { timestamp: true }

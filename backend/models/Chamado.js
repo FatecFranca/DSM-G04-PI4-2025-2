@@ -18,6 +18,11 @@ const ChamadoSchema = new Schema(
       enum: ["pendente", "atendido", "resolvido"],
       default: "pendente",
     },
+    empresa: {
+      type: Schema.Types.ObjectId,
+      ref: "Empresa",
+      required: true,
+    },
     timestamp_atendimento: {
       type: Date,
     },

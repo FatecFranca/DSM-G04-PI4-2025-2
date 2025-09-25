@@ -3,7 +3,7 @@ const { Schema } = require("mongoose");
 const PedidoItem = new Shema({
   item: { type: Schema.Types.ObjectId, ref: "Cardapio", required: true },
   quantidade: { type: Number, required: true, min: 1 },
-  preco_unitario: {type: Number, required: true},
+  preco_unitario: { type: Number, required: true },
   observacao: { type: String },
 });
 
@@ -25,14 +25,19 @@ const PedidoSchema = new Schema(
     },
     itens: [PedidoItem],
     status: {
-        type: String,
-        required: true,
-        enum: ['enviado_cozinha', 'preparando', 'pronto', 'entregue'],
-        default: 'enviado_cozinha'
+      type: String,
+      required: true,
+      enum: ["enviado_cozinha", "preparando", "pronto", "entregue"],
+      default: "enviado_cozinha",
     },
     observacoes_gerais: {
-        type: String
-    }
+      type: String,
+    },
+    empresa: {
+      type: Schema.Types.ObjectId,
+      ref: "Empresa",
+      required: true,
+    },
   },
   { timestamp: true }
 );
