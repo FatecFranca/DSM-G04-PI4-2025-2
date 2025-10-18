@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import RegisterForm from './components/RegisterForm'
-import LoginForm from './components/LoginForm'
-import NavBar from './components/NavBar'
+import { RegisterForm, LoginForm, NavBar } from './components/forms'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home') // 'home', 'login', 'register' or 'dashboard'

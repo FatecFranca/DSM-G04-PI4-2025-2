@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Button from './Button'
+import Button from '../common/Button'
 
 const NavBar = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -32,7 +32,7 @@ const NavBar = ({ onNavigate }) => {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-neutral-900">ClickServe</h1>
+                  <h1 className="text-xl font-bold text-neutral-900">DrinkFlow</h1>
                   <p className="text-xs text-neutral-500 hidden sm:block">Gestão Inteligente</p>
                 </div>
               </div>

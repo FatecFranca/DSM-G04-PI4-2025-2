@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
-import Button from './Button'
-import Footer from './Footer'
+import Button from '../common/Button'
+import Footer from '../common/Footer'
 
 const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
   const {
@@ -73,7 +73,7 @@ const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
 
         {/* Form */}
         <div className="form-container">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Nome */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">

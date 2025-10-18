@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
-import Button from './Button'
-import Footer from './Footer'
+import Button from '../common/Button'
+import Footer from '../common/Footer'
 
 const LoginForm = ({ onBackToRegister, onBackToHome }) => {
   const {
