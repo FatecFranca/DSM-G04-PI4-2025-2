@@ -61,6 +61,9 @@ const NavBar = ({ onNavigate }) => {
 
           {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('dashboard')}>
+              Dashboard
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onNavigate?.('login')}>
               Entrar
             </Button>
@@ -112,6 +115,9 @@ const NavBar = ({ onNavigate }) => {
             {/* Mobile Action Buttons */}
             <div className="pt-4 pb-3 border-t border-neutral-200">
               <div className="space-y-3">
+                <Button variant="ghost" fullWidth onClick={() => onNavigate?.('dashboard')}>
+                  Dashboard
+                </Button>
                 <Button variant="ghost" fullWidth onClick={() => onNavigate?.('login')}>
                   Entrar
                 </Button>
