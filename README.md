@@ -76,9 +76,9 @@ O **ClickServe** é um sistema web responsivo que oferece:
 
 **Grupo 04 - DSM Fatec Franca 2025.2**
 - [Vincius de Araújo Silva] - Frontend Developer
-- [Nome] - Backend Developer  
-- [Nome] - UI/UX Designer
-- [Nome] - Project Manager
+- [Paulo Ricardo Azevedo ] - Backend Developer  
+- [Otavio Borges Colimo] - UI/UX Designer
+- [Tiago Cunha Archete ] - Project Manager
 
 ---
 
@@ -104,7 +104,6 @@ npm install
 npm run dev
 ```
 
-**Acesse:** http://localhost:5173
 
 ---
 
