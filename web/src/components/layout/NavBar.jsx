@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Button from './Button'
+import Button from '../common/Button'
 
 const NavBar = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -32,7 +32,7 @@ const NavBar = ({ onNavigate }) => {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-neutral-900">ClickServe</h1>
+                  <h1 className="text-xl font-bold text-neutral-900">DrinkFlow</h1>
                   <p className="text-xs text-neutral-500 hidden sm:block">Gestão Inteligente</p>
                 </div>
               </div>
@@ -61,6 +61,9 @@ const NavBar = ({ onNavigate }) => {
 
           {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('dashboard')}>
+              Dashboard
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onNavigate?.('login')}>
               Entrar
             </Button>
@@ -112,6 +115,9 @@ const NavBar = ({ onNavigate }) => {
             {/* Mobile Action Buttons */}
             <div className="pt-4 pb-3 border-t border-neutral-200">
               <div className="space-y-3">
+                <Button variant="ghost" fullWidth onClick={() => onNavigate?.('dashboard')}>
+                  Dashboard
+                </Button>
                 <Button variant="ghost" fullWidth onClick={() => onNavigate?.('login')}>
                   Entrar
                 </Button>
