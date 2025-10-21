@@ -12,5 +12,7 @@ router.post(
 );
 router.get('/:id',isAuthenticated, checkRole(['gerente']), UserController.getFuncionario )
 router.get('/', isAuthenticated, checkRole(['gerente']), UserController.getAllFuncionarios)
+router.patch('/:id', isAuthenticated, checkRole(['gerente']), UserController.updateFuncionario);
+router.delete('/:id', isAuthenticated, checkRole(['gerente']), UserController.deleteFuncionario);
 
 module.exports = router;

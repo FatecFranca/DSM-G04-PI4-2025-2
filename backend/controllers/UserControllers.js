@@ -101,13 +101,102 @@ module.exports = class UserController {
     try {
       const funcionario = await User.findOne({ _id: id, empresa: empresaId });
       if (!funcionario) {
-        return res.status(404).json({ message: "Funcionário não encontrado nesta empresa" });
+        return res
+          .status(404)
+          .json({ message: "Funcionário não encontrado nesta empresa" });
       }
       return res.status(200).json({ funcionario: funcionario });
     } catch (err) {
       res.status(500).json({
         message: "Erro ao buscar funcionário.",
         error: err.message,
+      });
+    }
+  }
+  static async updateFuncionario(req, res) {
+    const id = req.params.id; 
+    const empresaId = req.user.empresa; 
+
+    const updateData = {};
+    const camposPermitidos = ["nome", "email", "cargo"];
+
+    for (const campo of camposPermitidos) {
+      if (req.body[campo]) {
+        updateData[campo] = req.body[campo];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res
+        .status(422)
+        .json({ message: "Nenhum dado para atualização foi fornecido." });
+    }
+
+    try {
+      const funcionarioAtualizado = await User.findOneAndUpdate(
+        { _id: id, empresa: empresaId },
+        { $set: updateData },
+        { new: true, runValidators: true }
+      ).select("-senha -pin_acesso");
+
+      if (!funcionarioAtualizado) {
+        return res
+          .status(404)
+          .json({ message: "Funcionário não encontrado nesta empresa." });
+      }
+
+      res
+        .status(200)
+        .json({
+          message: "Funcionário atualizado com sucesso!",
+          funcionario: funcionarioAtualizado,
+        });
+    } catch (error) {
+      // Trata erro de e-mail duplicado
+      if (error.code === 11000) {
+        return res
+          .status(409)
+          .json({
+            message: "O e-mail informado já está em uso por outro funcionário.",
+          });
+      }
+      res
+        .status(500)
+        .json({
+          message: "Erro ao atualizar funcionário.",
+          error: error.message,
+        });
+    }
+  }
+  static async deleteFuncionario(req, res) {
+    const id = req.params.id;
+    const empresaId = req.user.empresa;
+    const gerenteId = req.user.id;
+
+    if (id === gerenteId) {
+      return res.status(403).json({
+        message: "Acesso negado. Um gerente não pode desativar a si mesmo.",
+      });
+    }
+
+    try {
+      const funcionarioDesativado = await User.findOneAndUpdate(
+        { _id: id, empresa: empresaId },
+        { ativo: false },
+        { new: true }
+      );
+
+      if (!funcionarioDesativado) {
+        return res
+          .status(404)
+          .json({ message: "Funcionário não encontrado nesta empresa." });
+      }
+
+      res.status(200).json({ message: "Funcionário desativado com sucesso." });
+    } catch (error) {
+      res.status(500).json({
+        message: "Erro ao desativar funcionário.",
+        error: error.message,
       });
     }
   }

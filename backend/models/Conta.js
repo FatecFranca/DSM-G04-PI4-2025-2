@@ -3,7 +3,7 @@ const { Schema } = require("mongoose");
 
 const ContaSchema = new Schema(
   {
-    mesa_id: {
+    mesa: {
       type: Schema.Types.ObjectId,
       ref: "Mesa",
       required: true,

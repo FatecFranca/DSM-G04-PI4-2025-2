@@ -33,6 +33,10 @@ const MesaSchema = new Schema(
       ref: "Empresa",
       required: true,
     },
+    ativo: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamp: true }
 );

@@ -13,8 +13,12 @@ app.use(
 
 const userRoutes = require('./routes/userRoutes')
 const empresaRoutes = require('./routes/empresaRoutes')
+const mesaRoutes = require('./routes/mesaRoutes')
+const chamadosRoutes = require('./routes/chamadosRoutes')
 
 app.use('/users', userRoutes)
 app.use('/empresas', empresaRoutes)
+app.use('/mesas', mesaRoutes)
+app.use('/chamados', chamadosRoutes)
 
 app.listen(5000)
