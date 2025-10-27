@@ -194,7 +194,7 @@ const Dashboard = ({ onBackToHome }) => {
           {/* Produtos com Baixo Estoque */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              ⚠️ Produtos com Baixo Estoque
+               Produtos com Baixo Estoque
             </h3>
             <div className="space-y-3">
               {lowStockItems.map((item, index) => (

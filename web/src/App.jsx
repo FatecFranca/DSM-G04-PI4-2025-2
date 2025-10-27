@@ -1,9 +1,19 @@
 import { useState } from 'react'
 import { RegisterForm, LoginForm, NavBar } from './components'
 import Dashboard from './pages/Dashboard'
+import AdminPage from './pages/AdminPage'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home') // 'home', 'login', 'register' or 'dashboard'
+  const [currentPage, setCurrentPage] = useState('home') // 'home', 'login', 'register', 'dashboard' or 'admin'
+
+  if (currentPage === 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NavBar onNavigate={setCurrentPage} />
+        <AdminPage onBackToHome={() => setCurrentPage('home')} />
+      </div>
+    )
+  }
 
   if (currentPage === 'dashboard') {
     return (

@@ -6,11 +6,8 @@ const NavBar = ({ onNavigate }) => {
   const [activeSection, setActiveSection] = useState('home')
 
   const menuItems = [
-    { id: 'home', label: 'Início', href: '#home' },
-    { id: 'features', label: 'Funcionalidades', href: '#features' },
-    { id: 'solutions', label: 'Soluções', href: '#solutions' },
-    { id: 'pricing', label: 'Preços', href: '#pricing' },
-    { id: 'contact', label: 'Contato', href: '#contact' }
+    { id: 'home', label: 'Início', href: 'home' },
+    { id: 'solutions', label: 'Soluções', href: 'solutions' }
   ]
 
   const handleMenuClick = (id) => {
@@ -32,7 +29,7 @@ const NavBar = ({ onNavigate }) => {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-neutral-900">DrinkFlow</h1>
+                  <h1 className="text-xl font-bold text-neutral-900">ClickServe</h1>
                   <p className="text-xs text-neutral-500 hidden sm:block">Gestão Inteligente</p>
                 </div>
               </div>
@@ -63,6 +60,12 @@ const NavBar = ({ onNavigate }) => {
           <div className="hidden md:flex items-center space-x-4">
             <Button variant="ghost" size="sm" onClick={() => onNavigate?.('dashboard')}>
               Dashboard
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('admin')}>
+              <svg className="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Admin
             </Button>
             <Button variant="ghost" size="sm" onClick={() => onNavigate?.('login')}>
               Entrar
@@ -117,6 +120,12 @@ const NavBar = ({ onNavigate }) => {
               <div className="space-y-3">
                 <Button variant="ghost" fullWidth onClick={() => onNavigate?.('dashboard')}>
                   Dashboard
+                </Button>
+                <Button variant="ghost" fullWidth onClick={() => onNavigate?.('admin')}>
+                  <svg className="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Admin
                 </Button>
                 <Button variant="ghost" fullWidth onClick={() => onNavigate?.('login')}>
                   Entrar
