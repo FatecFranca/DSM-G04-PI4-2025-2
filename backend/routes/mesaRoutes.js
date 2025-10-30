@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const MesaController = require('../controllers/MesaController');
-
-const isAuthenticated = require('../helpers/IsAuthenticated');
+const isAuthenticated = require('../helpers/isAuthenticated')
 const checkRole = require('../helpers/checkRole');
 
 

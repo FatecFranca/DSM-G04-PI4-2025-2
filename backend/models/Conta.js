@@ -25,7 +25,7 @@ const ContaSchema = new Schema(
     status: {
       type: String,
       required: true,
-      enum: ["aberta", "fechado", "cancelado"],
+      enum: ["aberta", "fechada", "cancelada"],
       default: "aberta",
     },
     empresa: {
@@ -33,7 +33,7 @@ const ContaSchema = new Schema(
       ref: "Empresa",
       required: true,
     },
-    timestamp_fechamento: {
+    data_fechamento: {
       type: Date,
     },
   },
