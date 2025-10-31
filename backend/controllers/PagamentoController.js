@@ -48,7 +48,7 @@ module.exports = class PagamentoController {
 
       if (contaAtualizada.valor_pago >= contaAtualizada.valor_total) {
         contaAtualizada.status = "fechada";
-        contaAtualizada.timestamp_fechamento = new Date();
+        contaAtualizada.data_fechamento = new Date();
         await contaAtualizada.save();
 
         await Mesa.findByIdAndUpdate(conta.mesa, {

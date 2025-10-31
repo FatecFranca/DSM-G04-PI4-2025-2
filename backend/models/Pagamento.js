@@ -18,8 +18,13 @@ const PagamentoSchema = new Schema({
     },
     garcom_responsavel: {
         type: Schema.Types.ObjectId,
-        ref: 'Usuario',
+        ref: 'User',
         required: true,
+    },
+    empresa: {
+      type: Schema.Types.ObjectId,
+      ref: "Empresa",
+      required: true,
     },
 }, { timestamps: true });
 

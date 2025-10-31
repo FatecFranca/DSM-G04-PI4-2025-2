@@ -19,6 +19,10 @@ router.patch('/:id/cancelar',
     checkRole(['gerente']), 
     ContaController.cancelarConta
 );
-
+router.get('/',
+    isAuthenticated,
+    checkRole(['gerente']),
+    ContaController.listarContas
+);
 
 module.exports = router;

@@ -63,7 +63,7 @@ module.exports = class ContaController {
         model: "Pedido",
         populate: [
           { path: "itens.item", model: "Cardapio", select: "nome preco" },
-          { path: "garcom", model: "Usuario", select: "nome" },
+          { path: "garcom", model: "User", select: "nome" },
         ],
       });
 
@@ -80,6 +80,47 @@ module.exports = class ContaController {
         .json({ message: "Erro ao buscar conta.", error: error.message });
     }
   }
+  static async listarContas(req, res) {
+    const empresaId = req.user.empresa;
+    
+    const { status, dataInicio, dataFim } = req.query;
+
+    try {
+      const query = { empresa: empresaId };
+
+      if (status) {
+        query.status = status;
+      }
+
+      if (dataInicio && dataFim) {
+        query.data_fechamento = {
+          $gte: new Date(dataInicio),
+          $lte: new Date(dataFim),
+        };
+      } else if (dataInicio) {
+        query.data_fechamento = { $gte: new Date(dataInicio) };
+      } else if (dataFim) {
+        query.data_fechamento = { $lte: new Date(dataFim) };
+      }
+
+      const contas = await Conta.find(query)
+        .sort({ data_fechamento: -1 })
+        .populate("mesa", "numero");
+
+      if (!contas || contas.length === 0) {
+        return res
+          .status(404)
+          .json({ message: "Nenhuma conta encontrada com esses filtros." });
+      }
+
+      res.status(200).json({ contas });
+
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Erro ao listar contas.", error: error.message });
+    }
+  }
   static async cancelarConta(req, res) {
     const contaId = req.params.id;
     const empresaId = req.user.empresa;
@@ -91,19 +132,21 @@ module.exports = class ContaController {
         return res.status(404).json({ message: "Conta não encontrada." });
       }
       if (conta.status === "fechada") {
-        return res
-          .status(409)
-          .json({
-            message: "Não é possível cancelar uma conta que já foi fechada.",
-          });
+        return res.status(409).json({
+          message: "Não é possível cancelar uma conta que já foi fechada.",
+        });
       }
       if (conta.valor_pago > 0) {
-        return res
-          .status(409)
-          .json({
-            message:
-              "Não é possível cancelar uma conta que já recebeu pagamentos.",
-          });
+        return res.status(409).json({
+          message:
+            "Não é possível cancelar uma conta que já recebeu pagamentos.",
+        });
+      }
+      if (conta.valor_total > 0) {
+        return res.status(409).json({
+          message:
+            "Não é possível cancelar uma conta que já possui pedidos"
+        });
       }
       conta.status = "cancelada";
       await conta.save();
