@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const UserController = require("../controllers/UserControllers");
 const checkRole = require("../helpers/checkRole");
-const isAuthenticated = require("../helpers/IsAuthenticated");
+const isAuthenticated = require("../helpers/isAuthenticated");
 
 router.post("/login", UserController.login);
 router.post(

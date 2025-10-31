@@ -152,7 +152,6 @@ module.exports = class UserController {
           funcionario: funcionarioAtualizado,
         });
     } catch (error) {
-      // Trata erro de e-mail duplicado
       if (error.code === 11000) {
         return res
           .status(409)
