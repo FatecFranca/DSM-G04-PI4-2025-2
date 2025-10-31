@@ -10,7 +10,7 @@ const ChamadoSchema = new Schema(
     },
     garcom: {
       type: Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
     },
     status: {
       type: String,

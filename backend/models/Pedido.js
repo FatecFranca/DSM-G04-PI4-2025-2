@@ -16,12 +16,12 @@ const PedidoSchema = new Schema(
     },
     garcom: {
       type: Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
       required: true,
     },
     cozinheiro: {
       type: Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
     },
     itens: [PedidoItem],
     status: {
