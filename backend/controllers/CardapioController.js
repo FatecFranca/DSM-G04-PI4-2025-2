@@ -1,7 +1,7 @@
-const CardapioItem = require('../models/CardapioItem');
+const Cardapio = require('../models/Cardapio');
 const ObjectId = require('mongoose').Types.ObjectId;
 
-module.exports = class CardapioItemController {
+module.exports = class CardapioController {
     static async createItem(req, res) {
         const { nome, descricao, preco, categoria } = req.body;
         const empresaId = req.user.empresa;
@@ -11,12 +11,12 @@ module.exports = class CardapioItemController {
         if (!categoria) return res.status(422).json({ message: "A categoria do item é obrigatória." });
 
         try {
-            const itemExists = await CardapioItem.findOne({ nome: nome, empresa: empresaId });
+            const itemExists = await Cardapio.findOne({ nome: nome, empresa: empresaId });
             if (itemExists) {
                 return res.status(409).json({ message: "Um item com este nome já existe no seu cardápio." });
             }
 
-            const novoItem = new CardapioItem({
+            const novoItem = new Cardapio({
                 nome,
                 descricao,
                 preco,
@@ -41,7 +41,7 @@ module.exports = class CardapioItemController {
                 query.disponivel = true;
             }
 
-            const itens = await CardapioItem.find(query).sort('categoria nome');
+            const itens = await Cardapio.find(query).sort('categoria nome');
             res.status(200).json({ itens });
         } catch (error) {
             res.status(500).json({ message: "Erro ao buscar cardápio.", error: error.message });
@@ -56,7 +56,7 @@ module.exports = class CardapioItemController {
         }
 
         try {
-            const item = await CardapioItem.findOne({ _id: id, empresa: empresaId });
+            const item = await Cardapio.findOne({ _id: id, empresa: empresaId });
             if (!item) {
                 return res.status(404).json({ message: "Item não encontrado nesta empresa." });
             }
@@ -83,7 +83,7 @@ module.exports = class CardapioItemController {
         }
 
         try {
-            const itemAtualizado = await CardapioItem.findOneAndUpdate(
+            const itemAtualizado = await Cardapio.findOneAndUpdate(
                 { _id: id, empresa: empresaId },
                 { $set: updateData },
                 { new: true, runValidators: true }
@@ -107,7 +107,7 @@ module.exports = class CardapioItemController {
         const empresaId = req.user.empresa;
         
         try {
-            const itemDesativado = await CardapioItem.findOneAndUpdate(
+            const itemDesativado = await Cardapio.findOneAndUpdate(
                 { _id: id, empresa: empresaId },
                 { disponivel: false }
             );
