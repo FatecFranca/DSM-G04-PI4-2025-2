@@ -1,0 +1,160 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Call } from '../types';
+import { Ionicons } from '@expo/vector-icons';
+
+interface ActiveCallProps {
+  call: Call | null;
+  onFinishCall: () => void;
+}
+
+export default function ActiveCall({ call, onFinishCall }: ActiveCallProps) {
+  const [elapsedTime, setElapsedTime] = React.useState(0);
+  
+  React.useEffect(() => {
+    if (!call) return;
+    
+    // Calcular tempo inicial (em segundos desde que o chamado começou)
+    const startTimeMs = new Date(call.timestamp).getTime();
+    const initialElapsed = Math.floor((Date.now() - startTimeMs) / 1000);
+    setElapsedTime(initialElapsed);
+    
+    // Atualizar timer a cada segundo
+    const interval = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [call]);
+
+  if (!call) return null;
+
+  const formattedTime = new Date(call.timestamp).toLocaleTimeString().slice(0, 5);
+  
+  // Formatar o tempo decorrido
+  const minutes = Math.floor(elapsedTime / 60);
+  const seconds = elapsedTime % 60;
+  const formattedElapsedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Chamado em Atendimento</Text>
+        <Text style={styles.time}>{formattedTime}</Text>
+      </View>
+      
+      <View style={styles.content}>
+        <View style={styles.infoContainer}>
+          <View style={styles.tableInfo}>
+            <Text style={styles.tableNumber}>Mesa {call.tableId}</Text>
+            <Text style={styles.status}>Em andamento</Text>
+          </View>
+          
+          <View style={styles.timerContainer}>
+            <Ionicons name="time-outline" size={20} color="#0ea5e9" />
+            <Text style={styles.timer}>{formattedElapsedTime}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.finishButton}
+          onPress={onFinishCall}
+        >
+          <Text style={styles.buttonText}>Finalizar Atendimento</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 0, // Garante que não há margem superior
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    marginBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0ea5e9',
+  },
+  time: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  content: {
+    padding: 16,
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tableInfo: {
+    flex: 1,
+  },
+  tableNumber: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  status: {
+    fontSize: 14,
+    color: '#0ea5e9',
+    fontWeight: '500',
+  },
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+    padding: 10,
+    borderRadius: 10,
+  },
+  timer: {
+    marginLeft: 6,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0ea5e9',
+  },
+  finishButton: {
+    backgroundColor: '#22c55e',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
