@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ChamadoController = require('../controllers/ChamadoController');
 
-const isAuthenticated = require('../helpers/IsAuthenticated');
+const isAuthenticated = require('../helpers/isAuthenticated');
 const checkRole = require('../helpers/checkRole');
 
 router.post('/', ChamadoController.criarChamado);

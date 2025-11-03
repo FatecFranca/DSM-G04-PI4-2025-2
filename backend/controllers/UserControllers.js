@@ -83,7 +83,7 @@ module.exports = class UserController {
     const empresaId = req.user.empresa;
 
     try {
-      const funcionarios = await User.find({ empresa: empresaId }).select(
+      const funcionarios = await User.find({ empresa: empresaId, ativo: true }).select(
         "-senha -pin"
       );
       res.status(200).json({ funcionarios });
@@ -99,7 +99,7 @@ module.exports = class UserController {
     const empresaId = req.user.empresa;
 
     try {
-      const funcionario = await User.findOne({ _id: id, empresa: empresaId });
+      const funcionario = await User.findOne({ _id: id, empresa: empresaId, ativo: true });
       if (!funcionario) {
         return res
           .status(404)
@@ -152,7 +152,6 @@ module.exports = class UserController {
           funcionario: funcionarioAtualizado,
         });
     } catch (error) {
-      // Trata erro de e-mail duplicado
       if (error.code === 11000) {
         return res
           .status(409)

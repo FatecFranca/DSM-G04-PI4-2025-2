@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const EmpresaController = require('../controllers/EmpresaController');
-const isAuthenticated = require('../helpers/IsAuthenticated')
+const isAuthenticated = require('../helpers/isAuthenticated')
 const checkRole = require('../helpers/checkRole')
 
 router.post('/register', EmpresaController.register);

@@ -1,6 +1,6 @@
 const mongoose = require("../db/conn");
 const { Schema } = require("mongoose");
-const PedidoItem = new Shema({
+const PedidoItem = new Schema({
   item: { type: Schema.Types.ObjectId, ref: "Cardapio", required: true },
   quantidade: { type: Number, required: true, min: 1 },
   preco_unitario: { type: Number, required: true },
@@ -9,19 +9,19 @@ const PedidoItem = new Shema({
 
 const PedidoSchema = new Schema(
   {
-    mesa_id: {
+    mesa: {
       type: Schema.Types.ObjectId,
       ref: "Mesa",
       required: true,
     },
-    garcom_id: {
+    garcom: {
       type: Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
       required: true,
     },
-    cozinheiro_id: {
+    cozinheiro: {
       type: Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
     },
     itens: [PedidoItem],
     status: {

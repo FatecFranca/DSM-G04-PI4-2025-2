@@ -8,9 +8,9 @@ const ChamadoSchema = new Schema(
       ref: "Mesa",
       required: true,
     },
-    garcom_id: {
+    garcom: {
       type: Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
     },
     status: {
       type: String,
