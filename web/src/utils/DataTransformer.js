@@ -71,6 +71,106 @@ export const DataTransformer = {
       .replace('MM', month)
       .replace('YYYY', year)
   },
+
+  /**
+   * Calcula a média de um array de valores
+   */
+  calculateMean: (values) => {
+    if (!values || values.length === 0) return 0
+    const sum = values.reduce((acc, val) => acc + val, 0)
+    return sum / values.length
+  },
+
+  /**
+   * Calcula a mediana de um array de valores
+   */
+  calculateMedian: (values) => {
+    if (!values || values.length === 0) return 0
+    const sorted = [...values].sort((a, b) => a - b)
+    const mid = Math.floor(sorted.length / 2)
+    return sorted.length % 2 === 0 
+      ? (sorted[mid - 1] + sorted[mid]) / 2 
+      : sorted[mid]
+  },
+
+  /**
+   * Calcula a moda de um array de valores
+   */
+  calculateMode: (values) => {
+    if (!values || values.length === 0) return 0
+    const frequency = {}
+    let maxFreq = 0
+    let mode = values[0]
+
+    values.forEach(val => {
+      frequency[val] = (frequency[val] || 0) + 1
+      if (frequency[val] > maxFreq) {
+        maxFreq = frequency[val]
+        mode = val
+      }
+    })
+
+    return mode
+  },
+
+  /**
+   * Calcula o desvio padrão de um array de valores
+   */
+  calculateStandardDeviation: (values) => {
+    if (!values || values.length === 0) return 0
+    const mean = DataTransformer.calculateMean(values)
+    const squaredDiffs = values.map(val => Math.pow(val - mean, 2))
+    const avgSquaredDiff = squaredDiffs.reduce((acc, val) => acc + val, 0) / values.length
+    return Math.sqrt(avgSquaredDiff)
+  },
+
+  /**
+   * Calcula a curtose de um array de valores
+   */
+  calculateKurtosis: (values) => {
+    if (!values || values.length === 0) return 0
+    const n = values.length
+    const mean = DataTransformer.calculateMean(values)
+    const stdDev = DataTransformer.calculateStandardDeviation(values)
+    
+    if (stdDev === 0) return 0
+    
+    const fourthMoment = values.reduce((acc, val) => {
+      return acc + Math.pow((val - mean) / stdDev, 4)
+    }, 0) / n
+    
+    // Curtose de Fisher (excess kurtosis)
+    return fourthMoment - 3
+  },
+
+  /**
+   * Calcula todas as estatísticas descritivas de uma vez
+   */
+  calculateDescriptiveStats: (values) => {
+    if (!values || values.length === 0) {
+      return {
+        mean: 0,
+        median: 0,
+        mode: 0,
+        stdDev: 0,
+        kurtosis: 0,
+        min: 0,
+        max: 0,
+        count: 0
+      }
+    }
+
+    return {
+      mean: DataTransformer.calculateMean(values),
+      median: DataTransformer.calculateMedian(values),
+      mode: DataTransformer.calculateMode(values),
+      stdDev: DataTransformer.calculateStandardDeviation(values),
+      kurtosis: DataTransformer.calculateKurtosis(values),
+      min: Math.min(...values),
+      max: Math.max(...values),
+      count: values.length
+    }
+  }
 }
 
 export default DataTransformer

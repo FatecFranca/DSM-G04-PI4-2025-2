@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import Button from '../common/Button'
+import { useAuth } from '../../hooks/useAuth'
 
 const NavBar = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
+  const { user, isAuthenticated, logout, isGerente } = useAuth()
 
   const menuItems = [
     { id: 'home', label: 'Início', href: 'home' },
@@ -13,7 +15,17 @@ const NavBar = ({ onNavigate }) => {
   const handleMenuClick = (id) => {
     setActiveSection(id)
     setIsMenuOpen(false)
+    onNavigate?.(id)
   }
+
+  const handleLogout = () => {
+    logout()
+    setIsMenuOpen(false)
+    onNavigate?.('home')
+  }
+
+  // Obter o primeiro nome do usuário para exibição
+  const firstName = user?.nome?.split(' ')[0] || 'Usuário'
 
   return (
     <nav className="bg-white/95 backdrop-blur-sm border-b border-neutral-200 sticky top-0 z-50">
@@ -40,9 +52,8 @@ const NavBar = ({ onNavigate }) => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               {menuItems.map((item) => (
-                <a
+                <button
                   key={item.id}
-                  href={item.href}
                   onClick={() => handleMenuClick(item.id)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                     activeSection === item.id
@@ -51,28 +62,57 @@ const NavBar = ({ onNavigate }) => {
                   }`}
                 >
                   {item.label}
-                </a>
+                </button>
               ))}
             </div>
           </div>
 
           {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('dashboard')}>
-              Dashboard
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('admin')}>
-              <svg className="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Admin
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('login')}>
-              Entrar
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => onNavigate?.('register')}>
-              Começar Grátis
-            </Button>
+            {isAuthenticated && user ? (
+              <>
+                <div className="flex items-center space-x-2 text-sm text-neutral-600 px-3 py-1 bg-neutral-50 rounded-lg">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                  <span>
+                    <span className="font-semibold">{firstName}</span>
+                    {user.cargo && (
+                      <span className="text-xs text-neutral-500 ml-1">({user.cargo})</span>
+                    )}
+                  </span>
+                </div>
+                {isGerente && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => handleMenuClick('admin')}>
+                      ⚙️ Admin
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleMenuClick('funcionarios')}>
+                      👥 Funcionários
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => handleMenuClick('dashboard')}>
+                  📊 Dashboard
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                >
+                  Sair
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => handleMenuClick('login')}>
+                  Entrar
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => handleMenuClick('register')}>
+                  Registre-se
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -101,38 +141,74 @@ const NavBar = ({ onNavigate }) => {
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-neutral-200">
             {menuItems.map((item) => (
-              <a
+              <button
                 key={item.id}
-                href={item.href}
                 onClick={() => handleMenuClick(item.id)}
-                className={`block px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${
+                className={`block w-full text-left px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200 ${
                   activeSection === item.id
                     ? 'text-primary-600 bg-primary-50'
                     : 'text-neutral-600 hover:text-primary-600 hover:bg-neutral-50'
                 }`}
               >
                 {item.label}
-              </a>
+              </button>
             ))}
             
             {/* Mobile Action Buttons */}
             <div className="pt-4 pb-3 border-t border-neutral-200">
+              {isAuthenticated && user && (
+                <div className="px-3 pb-3 mb-3 border-b border-neutral-200">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <svg className="w-5 h-5 text-neutral-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="font-semibold text-neutral-900">{user.nome}</p>
+                      {user.cargo && (
+                        <p className="text-xs text-neutral-500 capitalize">{user.cargo}</p>
+                      )}
+                      {user.email && (
+                        <p className="text-xs text-neutral-500">{user.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-3">
-                <Button variant="ghost" fullWidth onClick={() => onNavigate?.('dashboard')}>
-                  Dashboard
-                </Button>
-                <Button variant="ghost" fullWidth onClick={() => onNavigate?.('admin')}>
-                  <svg className="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Admin
-                </Button>
-                <Button variant="ghost" fullWidth onClick={() => onNavigate?.('login')}>
-                  Entrar
-                </Button>
-                <Button variant="primary" fullWidth onClick={() => onNavigate?.('register')}>
-                  Começar Grátis
-                </Button>
+                {isAuthenticated && user ? (
+                  <>
+                    {isGerente && (
+                      <>
+                        <Button variant="ghost" fullWidth onClick={() => handleMenuClick('admin')}>
+                          ⚙️ Painel Admin
+                        </Button>
+                        <Button variant="ghost" fullWidth onClick={() => handleMenuClick('funcionarios')}>
+                          👥 Funcionários
+                        </Button>
+                      </>
+                    )}
+                    <Button variant="ghost" fullWidth onClick={() => handleMenuClick('dashboard')}>
+                      📊 Dashboard
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      fullWidth 
+                      onClick={handleLogout}
+                    >
+                      Sair
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" fullWidth onClick={() => handleMenuClick('login')}>
+                      Entrar
+                    </Button>
+                    <Button variant="primary" fullWidth onClick={() => handleMenuClick('register')}>
+                      Começar Grátis
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

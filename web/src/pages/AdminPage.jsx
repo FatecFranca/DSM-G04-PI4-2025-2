@@ -1,96 +1,176 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import StatCard from '../components/charts/StatCard'
 import BarChart from '../components/charts/BarChart'
 import PieChart from '../components/charts/PieChart'
+import ApiService from '../services/api'
+import { useAuth } from '../hooks/useAuth'
 
 const AdminPage = ({ onBackToHome }) => {
-  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'users', 'products', 'orders', 'settings'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'users', 'mesas', 'chamados', 'settings'
   const [selectedPeriod, setSelectedPeriod] = useState('month')
+  const { user } = useAuth()
 
-  // Mock data - substituir por dados reais da API
-  const stats = {
-    totalUsers: 1248,
-    totalOrders: 3567,
-    totalRevenue: 125840,
-    activeUsers: 342,
-    pendingOrders: 23,
-    completedToday: 89
+  // Estados para dados do backend
+  const [funcionarios, setFuncionarios] = useState([])
+  const [mesas, setMesas] = useState([])
+  const [chamados, setChamados] = useState([])
+  const [empresa, setEmpresa] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Estados para modal de cadastro de mesa
+  const [showMesaModal, setShowMesaModal] = useState(false)
+  const [mesaForm, setMesaForm] = useState({
+    numero: '',
+    capacidade: '',
+    localizacao: ''
+  })
+  const [submitting, setSubmitting] = useState(false)
+
+  // Carregar dados do backend
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [funcData, mesasData, chamadosData] = await Promise.all([
+        ApiService.getAllFuncionarios().catch(() => ({ funcionarios: [] })),
+        ApiService.getAllMesas().catch(() => ({ mesas: [] })),
+        ApiService.getAllChamados().catch(() => ({ chamados: [] }))
+      ])
+
+      setFuncionarios(funcData.funcionarios || funcData.users || [])
+      setMesas(mesasData.mesas || [])
+      setChamados(chamadosData.chamados || [])
+
+      // Tentar carregar dados da empresa
+      if (user?.empresa) {
+        try {
+          const empresaData = await ApiService.getEmpresa(user.empresa)
+          setEmpresa(empresaData.empresa)
+        } catch (err) {
+          console.log('Erro ao carregar empresa:', err)
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err)
+      setError('Erro ao carregar dados do sistema')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const userGrowthData = [
-    { name: 'Jan', value: 120 },
-    { name: 'Fev', value: 195 },
-    { name: 'Mar', value: 240 },
-    { name: 'Abr', value: 310 },
-    { name: 'Mai', value: 385 },
-    { name: 'Jun', value: 498 }
-  ]
+  // Calcular estatísticas dos dados reais
+  const stats = {
+    totalUsers: funcionarios.length,
+    totalMesas: mesas.length,
+    mesasOcupadas: mesas.filter(m => m.ocupada).length,
+    chamadosPendentes: chamados.filter(c => c.status === 'pendente').length,
+    chamadosAtendidos: chamados.filter(c => c.status === 'resolvido').length,
+    activeUsers: funcionarios.filter(f => f.ativo !== false).length
+  }
 
+  // Dados para gráficos baseados em dados reais
   const userTypeData = [
-    { label: 'Clientes', value: 892 },
-    { label: 'Garçons', value: 156 },
-    { label: 'Cozinha', value: 87 },
-    { label: 'Administradores', value: 13 }
+    { label: 'Garçons', value: funcionarios.filter(f => f.cargo === 'garcom').length },
+    { label: 'Cozinheiros', value: funcionarios.filter(f => f.cargo === 'cozinheiro').length },
+    { label: 'Gerentes', value: funcionarios.filter(f => f.cargo === 'gerente').length }
   ]
 
-  const salesByCategory = [
-    { name: 'Bebidas', value: 45200 },
-    { name: 'Comidas', value: 38500 },
-    { name: 'Sobremesas', value: 22100 },
-    { name: 'Outros', value: 20040 }
+  const chamadosStatusData = [
+    { label: 'Pendentes', value: chamados.filter(c => c.status === 'pendente').length },
+    { label: 'Em Atendimento', value: chamados.filter(c => c.status === 'em_atendimento').length },
+    { label: 'Resolvidos', value: chamados.filter(c => c.status === 'resolvido').length }
   ]
 
-  // Dados de usuários mockados
-  const recentUsers = [
-    { id: 1, name: 'João Silva', email: 'joao@email.com', role: 'Cliente', status: 'active', joinDate: '2025-10-15' },
-    { id: 2, name: 'Maria Santos', email: 'maria@email.com', role: 'Garçom', status: 'active', joinDate: '2025-10-14' },
-    { id: 3, name: 'Pedro Costa', email: 'pedro@email.com', role: 'Cliente', status: 'inactive', joinDate: '2025-10-13' },
-    { id: 4, name: 'Ana Oliveira', email: 'ana@email.com', role: 'Cozinha', status: 'active', joinDate: '2025-10-12' },
-    { id: 5, name: 'Carlos Souza', email: 'carlos@email.com', role: 'Admin', status: 'active', joinDate: '2025-10-10' }
-  ]
-
-  const recentOrders = [
-    { id: '#ORD-1001', customer: 'João Silva', table: 'Mesa 5', amount: 245.50, status: 'completed', date: '2025-10-18 14:30' },
-    { id: '#ORD-1002', customer: 'Maria Santos', table: 'Mesa 3', amount: 189.00, status: 'pending', date: '2025-10-18 14:25' },
-    { id: '#ORD-1003', customer: 'Pedro Costa', table: 'Mesa 8', amount: 412.80, status: 'processing', date: '2025-10-18 14:20' },
-    { id: '#ORD-1004', customer: 'Ana Oliveira', table: 'Mesa 2', amount: 156.00, status: 'completed', date: '2025-10-18 14:15' },
-    { id: '#ORD-1005', customer: 'Carlos Souza', table: 'Mesa 7', amount: 298.90, status: 'cancelled', date: '2025-10-18 14:10' }
-  ]
-
-  const products = [
-    { id: 1, name: 'Cerveja Artesanal IPA', category: 'Bebidas', price: 18.90, stock: 145, status: 'active' },
-    { id: 2, name: 'Hambúrguer Gourmet', category: 'Comidas', price: 35.00, stock: 67, status: 'active' },
-    { id: 3, name: 'Cheesecake', category: 'Sobremesas', price: 22.50, stock: 12, status: 'low-stock' },
-    { id: 4, name: 'Vinho Tinto Reserva', category: 'Bebidas', price: 89.00, stock: 3, status: 'critical' },
-    { id: 5, name: 'Pizza Margherita', category: 'Comidas', price: 45.00, stock: 89, status: 'active' }
+  const mesasStatusData = [
+    { name: 'Disponíveis', value: mesas.filter(m => !m.ocupada).length },
+    { name: 'Ocupadas', value: mesas.filter(m => m.ocupada).length }
   ]
 
   const getStatusBadge = (status) => {
     const badges = {
+      ativo: 'bg-green-100 text-green-800 border border-green-200',
       active: 'bg-green-100 text-green-800 border border-green-200',
+      inativo: 'bg-gray-100 text-gray-800 border border-gray-200',
       inactive: 'bg-gray-100 text-gray-800 border border-gray-200',
+      pendente: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
       pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+      em_atendimento: 'bg-blue-100 text-blue-800 border border-blue-200',
       processing: 'bg-blue-100 text-blue-800 border border-blue-200',
+      resolvido: 'bg-green-100 text-green-800 border border-green-200',
       completed: 'bg-green-100 text-green-800 border border-green-200',
+      cancelado: 'bg-red-100 text-red-800 border border-red-200',
       cancelled: 'bg-red-100 text-red-800 border border-red-200',
-      'low-stock': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-      critical: 'bg-red-100 text-red-800 border border-red-200'
+      ocupada: 'bg-red-100 text-red-800 border border-red-200',
+      disponivel: 'bg-green-100 text-green-800 border border-green-200'
     }
     return badges[status] || badges.active
   }
 
   const getStatusText = (status) => {
     const texts = {
+      ativo: 'Ativo',
       active: 'Ativo',
+      inativo: 'Inativo',
       inactive: 'Inativo',
+      pendente: 'Pendente',
       pending: 'Pendente',
+      em_atendimento: 'Em Atendimento',
       processing: 'Processando',
+      resolvido: 'Resolvido',
       completed: 'Concluído',
+      cancelado: 'Cancelado',
       cancelled: 'Cancelado',
-      'low-stock': 'Estoque Baixo',
-      critical: 'Crítico'
+      ocupada: 'Ocupada',
+      disponivel: 'Disponível'
     }
     return texts[status] || status
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  // Função para criar nova mesa
+  const handleCreateMesa = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      // Validações
+      if (!mesaForm.numero || !mesaForm.capacidade) {
+        throw new Error('Número da mesa e capacidade são obrigatórios')
+      }
+
+      const mesaData = {
+        numero: parseInt(mesaForm.numero),
+        capacidade: parseInt(mesaForm.capacidade),
+        localizacao: mesaForm.localizacao || 'Não especificada'
+      }
+
+      await ApiService.createMesa(mesaData)
+      
+      // Limpar formulário e fechar modal
+      setMesaForm({ numero: '', capacidade: '', localizacao: '' })
+      setShowMesaModal(false)
+      
+      // Recarregar dados
+      await loadData()
+      
+      alert('Mesa cadastrada com sucesso!')
+    } catch (err) {
+      console.error('Erro ao criar mesa:', err)
+      setError(err.message || 'Erro ao cadastrar mesa')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -103,6 +183,7 @@ const AdminPage = ({ onBackToHome }) => {
               <button
                 onClick={onBackToHome}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Voltar"
               >
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -110,7 +191,9 @@ const AdminPage = ({ onBackToHome }) => {
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
-                <p className="text-gray-600 mt-1">Gerenciamento completo do sistema</p>
+                <p className="text-gray-600 mt-1">
+                  {empresa ? empresa.nome : 'Gerenciamento completo do sistema'}
+                </p>
               </div>
             </div>
 
@@ -136,12 +219,12 @@ const AdminPage = ({ onBackToHome }) => {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-4 mt-6 border-b border-gray-200">
+          <div className="flex gap-4 mt-6 border-b border-gray-200 overflow-x-auto">
             {[
               { id: 'overview', label: 'Visão Geral', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-              { id: 'users', label: 'Usuários', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-              { id: 'products', label: 'Produtos', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-              { id: 'orders', label: 'Pedidos', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+              { id: 'users', label: 'Funcionários', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+              { id: 'mesas', label: 'Mesas', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+              { id: 'chamados', label: 'Chamados', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
               { id: 'settings', label: 'Configurações', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }
             ].map((tab) => (
               <button
@@ -168,79 +251,101 @@ const AdminPage = ({ onBackToHome }) => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
-                title="Total de Usuários"
-                value={stats.totalUsers.toLocaleString()}
-                trend="up"
-                change="+12.5%"
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                }
-              />
-              <StatCard
-                title="Pedidos Totais"
-                value={stats.totalOrders.toLocaleString()}
-                trend="up"
-                change="+8.3%"
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                }
-              />
-              <StatCard
-                title="Receita Total"
-                value={`R$ ${stats.totalRevenue.toLocaleString()}`}
-                trend="up"
-                change="+15.8%"
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                }
-              />
-              <StatCard
-                title="Usuários Ativos"
-                value={stats.activeUsers.toLocaleString()}
-                trend="up"
-                change="+5.2%"
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                }
-              />
-            </div>
+            {loading && (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                <p className="mt-2 text-gray-600">Carregando dados...</p>
+              </div>
+            )}
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <BarChart
-                data={userGrowthData}
-                title="Crescimento de Usuários"
-                dataKey="value"
-                nameKey="name"
-              />
-              <PieChart
-                data={userTypeData}
-                title="Distribuição de Usuários"
-                dataKey="value"
-                nameKey="label"
-              />
-            </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700">{error}</p>
+                <button onClick={loadData} className="mt-2 text-red-600 hover:text-red-700 font-medium">
+                  Tentar novamente
+                </button>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 gap-6">
-              <PieChart
-                data={salesByCategory}
-                title="Vendas por Categoria"
-                dataKey="value"
-                nameKey="name"
-                type="donut"
-              />
-            </div>
+            {!loading && !error && (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <StatCard
+                    title="Total de Funcionários"
+                    value={stats.totalUsers.toLocaleString()}
+                    trend="neutral"
+                    change=""
+                    icon={
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    }
+                  />
+                  <StatCard
+                    title="Total de Mesas"
+                    value={stats.totalMesas.toLocaleString()}
+                    trend="neutral"
+                    change={`${stats.mesasOcupadas} ocupadas`}
+                    icon={
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    }
+                  />
+                  <StatCard
+                    title="Chamados Pendentes"
+                    value={stats.chamadosPendentes.toLocaleString()}
+                    trend={stats.chamadosPendentes > 5 ? "down" : "neutral"}
+                    change={`${stats.chamadosAtendidos} resolvidos`}
+                    icon={
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    }
+                  />
+                  <StatCard
+                    title="Funcionários Ativos"
+                    value={stats.activeUsers.toLocaleString()}
+                    trend="up"
+                    change={`${stats.totalUsers - stats.activeUsers} inativos`}
+                    icon={
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    }
+                  />
+                </div>
+
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {userTypeData.some(d => d.value > 0) && (
+                    <PieChart
+                      data={userTypeData}
+                      title="Distribuição de Funcionários"
+                      dataKey="value"
+                      nameKey="label"
+                    />
+                  )}
+                  {chamadosStatusData.some(d => d.value > 0) && (
+                    <PieChart
+                      data={chamadosStatusData}
+                      title="Status dos Chamados"
+                      dataKey="value"
+                      nameKey="label"
+                    />
+                  )}
+                  {mesasStatusData.some(d => d.value > 0) && (
+                    <BarChart
+                      data={mesasStatusData}
+                      title="Status das Mesas"
+                      dataKey="value"
+                      nameKey="name"
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -248,178 +353,98 @@ const AdminPage = ({ onBackToHome }) => {
         {activeTab === 'users' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuários</h2>
-              <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Funcionários</h2>
+              <button 
+                onClick={loadData}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Novo Usuário
+                Atualizar
               </button>
             </div>
 
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  placeholder="Buscar usuários..."
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                <p className="mt-2 text-gray-600">Carregando funcionários...</p>
               </div>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                <option value="">Todos os Tipos</option>
-                <option value="client">Cliente</option>
-                <option value="waiter">Garçom</option>
-                <option value="kitchen">Cozinha</option>
-                <option value="admin">Administrador</option>
-              </select>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                <option value="">Todos os Status</option>
-                <option value="active">Ativo</option>
-                <option value="inactive">Inativo</option>
-              </select>
-            </div>
-
-            {/* Users Table */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Função</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data de Cadastro</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {recentUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
-                            <span className="text-primary-700 font-semibold">{user.name.charAt(0)}</span>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.role}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(user.status)}`}>
-                          {getStatusText(user.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.joinDate}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-primary-600 hover:text-primary-900 mr-4">Editar</button>
-                        <button className="text-red-600 hover:text-red-900">Excluir</button>
-                      </td>
+            ) : funcionarios.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum funcionário encontrado</h3>
+                <p className="text-gray-600">Adicione funcionários na página de gerenciamento.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funcionário</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastro</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {funcionarios.map((func) => (
+                      <tr key={func._id || func.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
+                              <span className="text-primary-700 font-semibold">{func.nome?.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{func.nome}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{func.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{func.cpf || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm font-medium text-gray-900 capitalize">{func.cargo}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(func.ativo !== false ? 'ativo' : 'inativo')}`}>
+                            {getStatusText(func.ativo !== false ? 'ativo' : 'inativo')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {func.createdAt ? new Date(func.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Products Tab */}
-        {activeTab === 'products' && (
+        {/* Mesas Tab */}
+        {activeTab === 'mesas' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Produtos</h2>
-              <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Novo Produto
-              </button>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  placeholder="Buscar produtos..."
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                <option value="">Todas as Categorias</option>
-                <option value="bebidas">Bebidas</option>
-                <option value="comidas">Comidas</option>
-                <option value="sobremesas">Sobremesas</option>
-              </select>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                <option value="">Todos os Status</option>
-                <option value="active">Ativo</option>
-                <option value="low-stock">Estoque Baixo</option>
-                <option value="critical">Crítico</option>
-              </select>
-            </div>
-
-            {/* Products Table */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estoque</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {products.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">R$ {product.price.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.stock} un.</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(product.status)}`}>
-                          {getStatusText(product.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-primary-600 hover:text-primary-900 mr-4">Editar</button>
-                        <button className="text-red-600 hover:text-red-900">Excluir</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Orders Tab */}
-        {activeTab === 'orders' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Pedidos</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Mesas</h2>
               <div className="flex gap-3">
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={() => setShowMesaModal(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Filtros
+                  Nova Mesa
                 </button>
-                <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={loadData}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -428,44 +453,159 @@ const AdminPage = ({ onBackToHome }) => {
               </div>
             </div>
 
-            {/* Orders Table */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Pedido</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mesa</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data/Hora</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{order.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customer}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.table}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">R$ {order.amount.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(order.status)}`}>
-                          {getStatusText(order.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-primary-600 hover:text-primary-900 mr-4">Ver Detalhes</button>
-                        <button className="text-blue-600 hover:text-blue-900">Imprimir</button>
-                      </td>
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                <p className="mt-2 text-gray-600">Carregando mesas...</p>
+              </div>
+            ) : mesas.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma mesa cadastrada</h3>
+                <p className="text-gray-600">Cadastre mesas para começar a gerenciar seu estabelecimento.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidade</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localização</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastro</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {mesas.map((mesa) => (
+                      <tr key={mesa._id || mesa.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-blue-700 font-bold">{mesa.numero}</span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">Mesa {mesa.numero}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {mesa.capacidade || 'N/A'} pessoas
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {mesa.localizacao || 'Não especificada'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(mesa.ocupada ? 'ocupada' : 'disponivel')}`}>
+                            {getStatusText(mesa.ocupada ? 'ocupada' : 'disponivel')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {mesa.qrCode ? (
+                            <span className="text-green-600 font-medium">✓ Gerado</span>
+                          ) : (
+                            <span className="text-gray-400">Não gerado</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {mesa.createdAt ? new Date(mesa.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Chamados Tab */}
+        {activeTab === 'chamados' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Chamados</h2>
+              <button 
+                onClick={loadData}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Atualizar
+              </button>
             </div>
+
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                <p className="mt-2 text-gray-600">Carregando chamados...</p>
+              </div>
+            ) : chamados.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum chamado registrado</h3>
+                <p className="text-gray-600">Chamados aparecem aqui quando clientes solicitam atendimento.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mesa</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Garçom</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criado Em</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resolvido Em</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {chamados.map((chamado) => (
+                      <tr key={chamado._id || chamado.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
+                              <span className="text-orange-700 font-bold">
+                                {chamado.mesa?.numero || chamado.mesa || 'N/A'}
+                              </span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                Mesa {chamado.mesa?.numero || chamado.mesa || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900 capitalize">
+                            {chamado.tipo || 'Atendimento'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(chamado.status)}`}>
+                            {getStatusText(chamado.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {chamado.garcom?.nome || chamado.garcom || 'Não atribuído'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(chamado.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {chamado.resolvidoEm ? formatDate(chamado.resolvidoEm) : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -477,114 +617,269 @@ const AdminPage = ({ onBackToHome }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* General Settings */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Configurações Gerais</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Estabelecimento</label>
-                    <input type="text" defaultValue="DrinkFlow Restaurant" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email de Contato</label>
-                    <input type="email" defaultValue="contato@drinkflow.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
-                    <input type="tel" defaultValue="(11) 98765-4321" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
-                    <textarea rows={3} defaultValue="Rua Exemplo, 123 - Centro, São Paulo - SP" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Notification Settings */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Notificações</h3>
-                <div className="space-y-4">
-                  {[
-                    { id: 'email-orders', label: 'Notificar novos pedidos por email', checked: true },
-                    { id: 'email-low-stock', label: 'Alertas de estoque baixo', checked: true },
-                    { id: 'email-reports', label: 'Relatórios diários por email', checked: false },
-                    { id: 'sms-orders', label: 'SMS para pedidos urgentes', checked: true },
-                    { id: 'push-notifications', label: 'Notificações push no navegador', checked: true }
-                  ].map((item) => (
-                    <div key={item.id} className="flex items-center justify-between">
-                      <label htmlFor={item.id} className="text-sm text-gray-700">{item.label}</label>
-                      <input
-                        type="checkbox"
-                        id={item.id}
-                        defaultChecked={item.checked}
-                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Informações da Empresa</h3>
+                {empresa ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Estabelecimento</label>
+                      <input 
+                        type="text" 
+                        value={empresa.nome || ''} 
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
                       />
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Security Settings */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Segurança</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Autenticação de Dois Fatores</label>
-                    <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                      Ativado
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sessões Ativas</label>
-                    <p className="text-sm text-gray-600 mb-2">3 dispositivos conectados</p>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                      Gerenciar Sessões
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Alterar Senha</label>
-                    <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                      Modificar Senha
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Settings */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Métodos de Pagamento</h3>
-                <div className="space-y-4">
-                  {[
-                    { id: 'cash', label: 'Dinheiro', enabled: true },
-                    { id: 'credit', label: 'Cartão de Crédito', enabled: true },
-                    { id: 'debit', label: 'Cartão de Débito', enabled: true },
-                    { id: 'pix', label: 'PIX', enabled: true },
-                    { id: 'voucher', label: 'Vale Refeição', enabled: false }
-                  ].map((method) => (
-                    <div key={method.id} className="flex items-center justify-between">
-                      <label htmlFor={method.id} className="text-sm text-gray-700">{method.label}</label>
-                      <input
-                        type="checkbox"
-                        id={method.id}
-                        defaultChecked={method.enabled}
-                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ</label>
+                      <input 
+                        type="text" 
+                        value={empresa.cnpj || ''} 
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
                       />
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Estabelecimento</label>
+                      <input 
+                        type="text" 
+                        value={empresa.tipo || ''} 
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 capitalize" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Data de Cadastro</label>
+                      <input 
+                        type="text" 
+                        value={empresa.createdAt ? new Date(empresa.createdAt).toLocaleDateString('pt-BR') : 'N/A'} 
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Informações da empresa não disponíveis</p>
+                  </div>
+                )}
+              </div>
+
+              {/* User Info */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Informações do Gerente</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                    <input 
+                      type="text" 
+                      value={user?.nome || ''} 
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input 
+                      type="email" 
+                      value={user?.email || ''} 
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
+                    <input 
+                      type="text" 
+                      value={user?.cargo || ''} 
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 capitalize" 
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Save Button */}
-            <div className="flex justify-end gap-4">
-              <button className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                Cancelar
-              </button>
-              <button className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                Salvar Alterações
-              </button>
+              {/* Statistics */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Estatísticas do Sistema</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Total de Funcionários</span>
+                    <span className="text-lg font-semibold text-gray-900">{stats.totalUsers}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Funcionários Ativos</span>
+                    <span className="text-lg font-semibold text-green-600">{stats.activeUsers}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Total de Mesas</span>
+                    <span className="text-lg font-semibold text-gray-900">{stats.totalMesas}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Mesas Ocupadas</span>
+                    <span className="text-lg font-semibold text-orange-600">{stats.mesasOcupadas}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Chamados Pendentes</span>
+                    <span className="text-lg font-semibold text-yellow-600">{stats.chamadosPendentes}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Chamados Resolvidos</span>
+                    <span className="text-lg font-semibold text-green-600">{stats.chamadosAtendidos}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+                <div className="space-y-3">
+                  <button 
+                    onClick={loadData}
+                    className="w-full px-4 py-3 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Atualizar Todos os Dados
+                  </button>
+                  <button className="w-full px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Exportar Relatório
+                  </button>
+                  <button className="w-full px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Ver Logs do Sistema
+                  </button>
+                  <button className="w-full px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Configurações Avançadas
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Modal de Cadastro de Mesa */}
+      {showMesaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Cadastrar Nova Mesa</h3>
+                <button
+                  onClick={() => {
+                    setShowMesaModal(false)
+                    setMesaForm({ numero: '', capacidade: '', localizacao: '' })
+                    setError(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleCreateMesa} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Número da Mesa *
+                  </label>
+                  <input
+                    type="number"
+                    value={mesaForm.numero}
+                    onChange={(e) => setMesaForm({ ...mesaForm, numero: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: 1, 2, 3..."
+                    required
+                    min="1"
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Capacidade (pessoas) *
+                  </label>
+                  <input
+                    type="number"
+                    value={mesaForm.capacidade}
+                    onChange={(e) => setMesaForm({ ...mesaForm, capacidade: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: 2, 4, 6..."
+                    required
+                    min="1"
+                    max="20"
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Localização
+                  </label>
+                  <input
+                    type="text"
+                    value={mesaForm.localizacao}
+                    onChange={(e) => setMesaForm({ ...mesaForm, localizacao: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: Salão Principal, Varanda, Área Externa..."
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMesaModal(false)
+                      setMesaForm({ numero: '', capacidade: '', localizacao: '' })
+                      setError(null)
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={submitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Cadastrando...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Cadastrar Mesa
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

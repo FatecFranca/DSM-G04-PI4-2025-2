@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(
   cors({
     credentials: true,
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://localhost:5173"], // CRA e Vite
   })
 );
 
@@ -21,4 +21,7 @@ app.use('/empresas', empresaRoutes)
 app.use('/mesas', mesaRoutes)
 app.use('/chamados', chamadosRoutes)
 
-app.listen(5000)
+app.listen(5000, () => {
+  console.log('🚀 Servidor rodando na porta 5000')
+  console.log('📡 API disponível em: http://localhost:5000')
+})
