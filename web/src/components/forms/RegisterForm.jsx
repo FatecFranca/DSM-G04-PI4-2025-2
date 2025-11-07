@@ -1,8 +1,13 @@
 import { useForm } from 'react-hook-form'
+import { useState } from 'react'
 import Button from '../common/Button'
 import Footer from '../common/Footer'
+import ApiService from '../../services/api'
 
-const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
+const RegisterForm = ({ onBackToLogin, onBackToHome, onNavigate }) => {
+  const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  
   const {
     register,
     handleSubmit,
@@ -12,35 +17,69 @@ const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
     defaultValues: {
       name: '',
       email: '',
+      cpf: '',
       password: '',
       confirmPassword: '',
-      phone: '',
       businessName: '',
-      businessType: 'restaurant'
+      cnpj: '',
+      businessType: 'Restaurante'
     }
   })
 
   const watchPassword = watch('password')
 
   const businessTypes = [
-    { value: 'restaurant', label: 'Restaurante' },
-    { value: 'bar', label: 'Bar' },
-    { value: 'cafe', label: 'Café' },
-    { value: 'pub', label: 'Pub' },
-    { value: 'club', label: 'Clube Noturno' },
-    { value: 'hotel', label: 'Hotel' },
-    { value: 'other', label: 'Outro' }
+    { value: 'Restaurante', label: 'Restaurante' },
+    { value: 'Bar', label: 'Bar' },
+    { value: 'Cafeteria', label: 'Cafeteria' },
+    { value: 'Outro', label: 'Outro' }
   ]
+
+  // Máscaras de formatação
+  const formatCPF = (value) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+  }
+
+  const formatCNPJ = (value) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+  }
 
   const onSubmit = async (data) => {
     try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      console.log('Dados do formulário:', data)
-      alert('Conta criada com sucesso!')
+      setErrorMessage('')
+      setSuccessMessage('')
+      
+      // Chamar API de registro de empresa
+      const response = await ApiService.createEmpresa({
+        nomeCompleto: data.name,
+        email: data.email,
+        cpf: data.cpf,
+        senha: data.password,
+        confirmarSenha: data.confirmPassword,
+        nomeEmpresa: data.businessName,
+        tipo: data.businessType,
+        cnpj: data.cnpj
+      })
+      
+      setSuccessMessage('Conta criada com sucesso! Redirecionando...')
+      
+      // Redirecionar para login após 2 segundos
+      setTimeout(() => {
+        onNavigate?.('login') || onBackToLogin()
+      }, 2000)
+      
     } catch (error) {
       console.error('Erro ao criar conta:', error)
-      alert('Erro ao criar conta. Tente novamente.')
+      setErrorMessage(error.message || 'Erro ao criar conta. Tente novamente.')
     }
   }
 
@@ -73,6 +112,20 @@ const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
 
         {/* Form */}
         <div className="form-container">
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{errorMessage}</p>
+            </div>
+          )}
+          
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-700 text-sm">{successMessage}</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Nome */}
             <div>
@@ -110,24 +163,25 @@ const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
             </div>
 
-            {/* Telefone */}
+            {/* CPF */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Telefone <span className="text-red-500">*</span>
+                CPF <span className="text-red-500">*</span>
               </label>
               <input
-                {...register('phone', {
-                  required: 'Telefone é obrigatório',
-                  pattern: {
-                    value: /^[\d\s\(\)\-\+]+$/,
-                    message: 'Telefone inválido'
-                  }
+                {...register('cpf', {
+                  required: 'CPF é obrigatório',
+                  minLength: { value: 11, message: 'CPF deve ter 11 dígitos' }
                 })}
-                type="tel"
-                className={`input-field ${errors.phone ? 'input-error' : ''}`}
-                placeholder="(11) 99999-9999"
+                type="text"
+                className={`input-field ${errors.cpf ? 'input-error' : ''}`}
+                placeholder="000.000.000-00"
+                maxLength="14"
+                onChange={(e) => {
+                  e.target.value = formatCPF(e.target.value)
+                }}
               />
-              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>}
+              {errors.cpf && <p className="mt-1 text-sm text-red-600">{errors.cpf.message}</p>}
             </div>
 
             {/* Nome do Estabelecimento */}
@@ -144,6 +198,27 @@ const RegisterForm = ({ onBackToLogin, onBackToHome }) => {
                 placeholder="Nome do seu restaurante/bar"
               />
               {errors.businessName && <p className="mt-1 text-sm text-red-600">{errors.businessName.message}</p>}
+            </div>
+
+            {/* CNPJ */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                CNPJ <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register('cnpj', {
+                  required: 'CNPJ é obrigatório',
+                  minLength: { value: 14, message: 'CNPJ deve ter 14 dígitos' }
+                })}
+                type="text"
+                className={`input-field ${errors.cnpj ? 'input-error' : ''}`}
+                placeholder="00.000.000/0000-00"
+                maxLength="18"
+                onChange={(e) => {
+                  e.target.value = formatCNPJ(e.target.value)
+                }}
+              />
+              {errors.cnpj && <p className="mt-1 text-sm text-red-600">{errors.cnpj.message}</p>}
             </div>
 
             {/* Tipo de Estabelecimento */}

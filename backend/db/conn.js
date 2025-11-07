@@ -7,7 +7,7 @@ if (!dbUrl) {
 }
 
 async function main() {
-    await mongoose.connect(dbUrl    )
+    await mongoose.connect(dbUrl)
     console.log('Conectado ao banco de dados');
 }
 

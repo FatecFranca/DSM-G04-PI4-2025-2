@@ -21,6 +21,18 @@ const Dashboard = ({ onBackToHome }) => {
   const { change: salesChange, trend: salesTrendValue } = DataTransformer.calculateTrend(28500, 25300)
   const { change: ordersChange, trend: ordersTrendValue } = DataTransformer.calculateTrend(342, 315)
 
+  // Calcular estatísticas descritivas para vendas diárias
+  const salesValues = salesByDay.map(item => item.value)
+  const salesStats = DataTransformer.calculateDescriptiveStats(salesValues)
+
+  // Calcular estatísticas descritivas para vendas por categoria
+  const categoryValues = salesByCategory.map(item => item.value)
+  const categoryStats = DataTransformer.calculateDescriptiveStats(categoryValues)
+
+  // Calcular estatísticas descritivas para tendência de vendas
+  const trendValues = salesTrendData.map(item => item.value)
+  const trendStats = DataTransformer.calculateDescriptiveStats(trendValues)
+
   const getStatusBadge = (status) => {
     const statusClasses = {
       delivered: 'bg-green-100 text-green-800',
@@ -134,6 +146,139 @@ const Dashboard = ({ onBackToHome }) => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Estatísticas Descritivas */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Análise Estatística</h2>
+          
+          {/* Vendas Diárias */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="text-blue-600">📊</span>
+              Estatísticas de Vendas Diárias
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                <p className="text-sm text-blue-700 font-medium mb-1">Média</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  {DataTransformer.formatCurrency(salesStats.mean)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                <p className="text-sm text-green-700 font-medium mb-1">Mediana</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {DataTransformer.formatCurrency(salesStats.median)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                <p className="text-sm text-purple-700 font-medium mb-1">Moda</p>
+                <p className="text-2xl font-bold text-purple-900">
+                  {DataTransformer.formatCurrency(salesStats.mode)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                <p className="text-sm text-orange-700 font-medium mb-1">Desvio Padrão</p>
+                <p className="text-2xl font-bold text-orange-900">
+                  {DataTransformer.formatCurrency(salesStats.stdDev)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
+                <p className="text-sm text-pink-700 font-medium mb-1">Curtose</p>
+                <p className="text-2xl font-bold text-pink-900">
+                  {salesStats.kurtosis.toFixed(2)}
+                </p>
+                <p className="text-xs text-pink-600 mt-1">
+                  {salesStats.kurtosis > 0 ? 'Leptocúrtica' : salesStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendas por Categoria */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="text-indigo-600">🎯</span>
+              Estatísticas de Vendas por Categoria
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
+                <p className="text-sm text-indigo-700 font-medium mb-1">Média</p>
+                <p className="text-2xl font-bold text-indigo-900">
+                  {DataTransformer.formatCurrency(categoryStats.mean)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
+                <p className="text-sm text-teal-700 font-medium mb-1">Mediana</p>
+                <p className="text-2xl font-bold text-teal-900">
+                  {DataTransformer.formatCurrency(categoryStats.median)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4 border border-violet-200">
+                <p className="text-sm text-violet-700 font-medium mb-1">Moda</p>
+                <p className="text-2xl font-bold text-violet-900">
+                  {DataTransformer.formatCurrency(categoryStats.mode)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
+                <p className="text-sm text-amber-700 font-medium mb-1">Desvio Padrão</p>
+                <p className="text-2xl font-bold text-amber-900">
+                  {DataTransformer.formatCurrency(categoryStats.stdDev)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border border-rose-200">
+                <p className="text-sm text-rose-700 font-medium mb-1">Curtose</p>
+                <p className="text-2xl font-bold text-rose-900">
+                  {categoryStats.kurtosis.toFixed(2)}
+                </p>
+                <p className="text-xs text-rose-600 mt-1">
+                  {categoryStats.kurtosis > 0 ? 'Leptocúrtica' : categoryStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tendência de Vendas */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="text-cyan-600">📉</span>
+              Estatísticas de Tendência de Vendas (12 meses)
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
+                <p className="text-sm text-cyan-700 font-medium mb-1">Média</p>
+                <p className="text-2xl font-bold text-cyan-900">
+                  {DataTransformer.formatCurrency(trendStats.mean)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4 border border-emerald-200">
+                <p className="text-sm text-emerald-700 font-medium mb-1">Mediana</p>
+                <p className="text-2xl font-bold text-emerald-900">
+                  {DataTransformer.formatCurrency(trendStats.median)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 rounded-lg p-4 border border-fuchsia-200">
+                <p className="text-sm text-fuchsia-700 font-medium mb-1">Moda</p>
+                <p className="text-2xl font-bold text-fuchsia-900">
+                  {DataTransformer.formatCurrency(trendStats.mode)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
+                <p className="text-sm text-yellow-700 font-medium mb-1">Desvio Padrão</p>
+                <p className="text-2xl font-bold text-yellow-900">
+                  {DataTransformer.formatCurrency(trendStats.stdDev)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
+                <p className="text-sm text-red-700 font-medium mb-1">Curtose</p>
+                <p className="text-2xl font-bold text-red-900">
+                  {trendStats.kurtosis.toFixed(2)}
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  {trendStats.kurtosis > 0 ? 'Leptocúrtica' : trendStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Vendas por Dia */}

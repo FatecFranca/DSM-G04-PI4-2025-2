@@ -1,8 +1,13 @@
 import { useForm } from 'react-hook-form'
+import { useState } from 'react'
 import Button from '../common/Button'
 import Footer from '../common/Footer'
+import { useAuth } from '../../hooks/useAuth'
 
-const LoginForm = ({ onBackToRegister, onBackToHome }) => {
+const LoginForm = ({ onBackToRegister, onBackToHome, onNavigate }) => {
+  const [errorMessage, setErrorMessage] = useState('')
+  const { login, loading: authLoading } = useAuth()
+  
   const {
     register,
     handleSubmit,
@@ -17,16 +22,21 @@ const LoginForm = ({ onBackToRegister, onBackToHome }) => {
 
   const onSubmit = async (data) => {
     try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      console.log('Dados do login:', data)
-      alert('Login realizado com sucesso!')
-      // Aqui você redirecionaria para o dashboard
+      setErrorMessage('')
+      
+      // Fazer login com backend
+      await login(data.email, data.password)
+      
+      // Redirecionar para homepage após login
+      onNavigate?.('home') || onBackToHome?.()
+      
     } catch (error) {
       console.error('Erro no login:', error)
-      alert('Erro no login. Verifique suas credenciais.')
+      setErrorMessage(error.message || 'Erro ao fazer login. Verifique suas credenciais.')
     }
   }
+  
+  const isLoading = isSubmitting || authLoading
 
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
@@ -57,6 +67,13 @@ const LoginForm = ({ onBackToRegister, onBackToHome }) => {
 
         {/* Form */}
         <div className="form-container">
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{errorMessage}</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div>
@@ -120,12 +137,12 @@ const LoginForm = ({ onBackToRegister, onBackToHome }) => {
             {/* Submit Button */}
             <Button
               type="submit"
-              loading={isSubmitting}
+              loading={isLoading}
               fullWidth
               size="lg"
-              disabled={isSubmitting}
+              disabled={isLoading}
             >
-              {isSubmitting ? 'Entrando...' : 'Entrar'}
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
 

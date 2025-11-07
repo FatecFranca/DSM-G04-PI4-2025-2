@@ -1,26 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { RegisterForm, LoginForm, NavBar } from './components'
 import Dashboard from './pages/Dashboard'
 import AdminPage from './pages/AdminPage'
+import LoginPage from './pages/LoginPage'
+import FuncionariosPage from './pages/FuncionariosPage'
+import SolutionsPage from './pages/SolutionsPage'
+import { useAuth } from './hooks/useAuth'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home') // 'home', 'login', 'register', 'dashboard' or 'admin'
+  const [currentPage, setCurrentPage] = useState('home')
+  const { user, isAuthenticated, logout } = useAuth()
+
+  // Proteção de rotas - Apenas usuários autenticados
+  useEffect(() => {
+    // Redirecionar para home se tentar acessar páginas protegidas sem autenticação
+    if (!isAuthenticated) {
+      if (currentPage === 'admin' || currentPage === 'funcionarios' || currentPage === 'dashboard') {
+        setCurrentPage('home')
+      }
+    }
+    // Redirecionar para home se tentar acessar páginas de gerente sem ser gerente
+    if (isAuthenticated && user?.cargo !== 'gerente') {
+      if (currentPage === 'admin' || currentPage === 'funcionarios') {
+        setCurrentPage('home')
+      }
+    }
+  }, [isAuthenticated, user, currentPage])
 
   if (currentPage === 'admin') {
+    if (!isAuthenticated || user?.cargo !== 'gerente') {
+      return null
+    }
     return (
       <div className="min-h-screen bg-gray-50">
-        <NavBar onNavigate={setCurrentPage} />
+        <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
         <AdminPage onBackToHome={() => setCurrentPage('home')} />
       </div>
     )
   }
 
-  if (currentPage === 'dashboard') {
+  if (currentPage === 'funcionarios') {
+    if (!isAuthenticated || user?.cargo !== 'gerente') {
+      return null
+    }
     return (
       <div className="min-h-screen bg-gray-50">
-        <NavBar onNavigate={setCurrentPage} />
+        <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
+        <FuncionariosPage />
+      </div>
+    )
+  }
+
+  if (currentPage === 'dashboard') {
+    if (!isAuthenticated) {
+      return null
+    }
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
         <Dashboard onBackToHome={() => setCurrentPage('home')} />
       </div>
+    )
+  }
+
+  // Login com backend
+  if (currentPage === 'login') {
+    return (
+      <LoginPage onNavigate={setCurrentPage} />
     )
   }
 
@@ -29,16 +75,14 @@ function App() {
       <RegisterForm 
         onBackToLogin={() => setCurrentPage('login')} 
         onBackToHome={() => setCurrentPage('home')}
+        onNavigate={setCurrentPage}
       />
     )
   }
 
-  if (currentPage === 'login') {
+  if (currentPage === 'solutions') {
     return (
-      <LoginForm 
-        onBackToRegister={() => setCurrentPage('register')}
-        onBackToHome={() => setCurrentPage('home')}
-      />
+      <SolutionsPage onNavigate={setCurrentPage} />
     )
   }
 
@@ -56,7 +100,7 @@ function App() {
           </div>
           
           <h1 className="text-6xl md:text-7xl font-black text-neutral-900 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-blue-600 to-secondary-600">
-            DrinkFlow
+            ClickServe
           </h1>
           
           <p className="text-xl md:text-2xl text-neutral-600 max-w-2xl mx-auto leading-relaxed mb-4 font-medium">
@@ -115,9 +159,7 @@ function App() {
               <p className="text-neutral-600 mb-6 leading-relaxed">
                 Controle completo do seu inventário de bebidas com alertas automáticos e relatórios em tempo real
               </p>
-              <button onClick={() => setCurrentPage('dashboard')} className="btn-primary w-full rounded-full hover:shadow-lg transition-all font-semibold">
-                Explorar →
-              </button>
+             
             </div>
 
             {/* Card 2 */}
@@ -133,9 +175,7 @@ function App() {
               <p className="text-neutral-600 mb-6 leading-relaxed">
                 Gráficos intuitivos e dashboards que mostram o desempenho em tempo real do seu estabelecimento
               </p>
-              <button onClick={() => setCurrentPage('dashboard')} className="btn-accent w-full rounded-full hover:shadow-lg transition-all font-semibold">
-                Explorar →
-              </button>
+             
             </div>
 
             {/* Card 3 */}
@@ -151,9 +191,7 @@ function App() {
               <p className="text-neutral-600 mb-6 leading-relaxed">
                 Geração automática de relatórios detalhados para ajudar na tomada de decisão estratégica
               </p>
-              <button onClick={() => setCurrentPage('dashboard')} className="btn-secondary w-full rounded-full hover:shadow-lg transition-all font-semibold">
-                Explorar →
-              </button>
+             
             </div>
           </div>
         </div>
@@ -174,12 +212,7 @@ function App() {
               >
                 Começar Grátis Agora
               </button>
-              <button 
-                onClick={() => setCurrentPage('dashboard')}
-                className="px-8 py-4 border-2 border-white text-white font-bold rounded-full hover:bg-white hover:text-primary-600 transition-all"
-              >
-                Ver Demo
-              </button>
+              
             </div>
             <p className="text-primary-100 text-sm mt-6">
               Sem cartão de crédito necessário. Comece gratuitamente.
