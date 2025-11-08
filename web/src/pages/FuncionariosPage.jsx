@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import ApiService from '../services/api'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
-import Select from '../components/common/Select'
 
 /**
  * Página de gerenciamento de funcionários
@@ -17,7 +16,7 @@ const FuncionariosPage = () => {
     nome: '',
     email: '',
     cpf: '',
-    cargo: 'funcionario'
+    cargo: ''
   })
 
   useEffect(() => {
@@ -38,10 +37,29 @@ const FuncionariosPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    
+    // Aplicar máscara de CPF
+    if (name === 'cpf') {
+      const numericValue = value.replace(/\D/g, '')
+      let maskedValue = numericValue
+      
+      if (numericValue.length <= 11) {
+        maskedValue = numericValue
+          .replace(/(\d{3})(\d)/, '$1.$2')
+          .replace(/(\d{3})(\d)/, '$1.$2')
+          .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: maskedValue
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -59,7 +77,7 @@ const FuncionariosPage = () => {
         await ApiService.addFuncionario(formData)
       }
 
-      setFormData({ nome: '', email: '', cpf: '', cargo: 'funcionario' })
+      setFormData({ nome: '', email: '', cpf: '', cargo: '' })
       setShowForm(false)
       setEditingId(null)
       fetchFuncionarios()
@@ -109,7 +127,7 @@ const FuncionariosPage = () => {
         <Button
           onClick={() => {
             setEditingId(null)
-            setFormData({ nome: '', email: '', cpf: '', cargo: 'funcionario' })
+            setFormData({ nome: '', email: '', cpf: '', cargo: '' })
             setShowForm(!showForm)
           }}
           variant="primary"
@@ -171,6 +189,7 @@ const FuncionariosPage = () => {
                     value={formData.cpf}
                     onChange={handleChange}
                     placeholder="000.000.000-00"
+                    maxLength="14"
                     required
                   />
                 </div>
@@ -180,14 +199,18 @@ const FuncionariosPage = () => {
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Cargo
                 </label>
-                <Select
+                <select
                   name="cargo"
                   value={formData.cargo}
                   onChange={handleChange}
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white"
+                  required
                 >
-                  <option value="funcionario">Funcionário</option>
+                  <option value="">Selecione uma opção</option>
+                  <option value="garcom">Garçom</option>
+                  <option value="cozinheiro">Cozinheiro</option>
                   <option value="gerente">Gerente</option>
-                </Select>
+                </select>
               </div>
             </div>
 

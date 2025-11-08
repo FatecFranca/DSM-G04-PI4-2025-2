@@ -2,6 +2,9 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 
+// Conectar ao banco de dados
+require('./db/conn')
+
 app.use(express.json());
 
 app.use(

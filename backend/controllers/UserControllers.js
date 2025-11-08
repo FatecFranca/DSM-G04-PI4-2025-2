@@ -41,6 +41,7 @@ module.exports = class UserController {
         .status(200)
         .json({ message: `Funcionário ${cargo} criado com sucesso` });
     } catch (err) {
+      console.error('Erro ao criar funcionário:', err);
       if (err.code === 11000) {
         return res.status(409).json({
           message: "Um funcionário com este e-mail já está cadastrado.",

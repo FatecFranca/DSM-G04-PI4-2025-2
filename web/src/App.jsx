@@ -9,7 +9,7 @@ import { useAuth } from './hooks/useAuth'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout, isGerente } = useAuth()
 
   // Proteção de rotas - Apenas usuários autenticados
   useEffect(() => {
@@ -20,15 +20,15 @@ function App() {
       }
     }
     // Redirecionar para home se tentar acessar páginas de gerente sem ser gerente
-    if (isAuthenticated && user?.cargo !== 'gerente') {
+    else if (!isGerente) {
       if (currentPage === 'admin' || currentPage === 'funcionarios') {
         setCurrentPage('home')
       }
     }
-  }, [isAuthenticated, user, currentPage])
+  }, [isAuthenticated, isGerente, currentPage])
 
   if (currentPage === 'admin') {
-    if (!isAuthenticated || user?.cargo !== 'gerente') {
+    if (!isAuthenticated || !isGerente) {
       return null
     }
     return (
@@ -40,7 +40,7 @@ function App() {
   }
 
   if (currentPage === 'funcionarios') {
-    if (!isAuthenticated || user?.cargo !== 'gerente') {
+    if (!isAuthenticated || !isGerente) {
       return null
     }
     return (

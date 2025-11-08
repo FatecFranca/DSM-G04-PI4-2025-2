@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import StatCard from '../components/charts/StatCard'
 import BarChart from '../components/charts/BarChart'
 import PieChart from '../components/charts/PieChart'
@@ -6,7 +6,7 @@ import ApiService from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 
 const AdminPage = ({ onBackToHome }) => {
-  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'users', 'mesas', 'chamados', 'settings'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'users', 'mesas', 'cardapio', 'chamados', 'settings'
   const [selectedPeriod, setSelectedPeriod] = useState('month')
   const { user } = useAuth()
 
@@ -14,6 +14,7 @@ const AdminPage = ({ onBackToHome }) => {
   const [funcionarios, setFuncionarios] = useState([])
   const [mesas, setMesas] = useState([])
   const [chamados, setChamados] = useState([])
+  const [cardapios, setCardapios] = useState([])
   const [empresa, setEmpresa] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -27,6 +28,15 @@ const AdminPage = ({ onBackToHome }) => {
   })
   const [submitting, setSubmitting] = useState(false)
 
+  // Estados para modal de cadastro de produto
+  const [showProdutoModal, setShowProdutoModal] = useState(false)
+  const [produtoForm, setProdutoForm] = useState({
+    nome: '',
+    descricao: '',
+    preco: '',
+    categoria: ''
+  })
+
   // Carregar dados do backend
   useEffect(() => {
     loadData()
@@ -36,15 +46,17 @@ const AdminPage = ({ onBackToHome }) => {
     setLoading(true)
     setError(null)
     try {
-      const [funcData, mesasData, chamadosData] = await Promise.all([
+      const [funcData, mesasData, chamadosData, cardapioData] = await Promise.all([
         ApiService.getAllFuncionarios().catch(() => ({ funcionarios: [] })),
         ApiService.getAllMesas().catch(() => ({ mesas: [] })),
-        ApiService.getAllChamados().catch(() => ({ chamados: [] }))
+        ApiService.getAllChamados().catch(() => ({ chamados: [] })),
+        ApiService.getAllCardapios().catch(() => ({ itens: [] }))
       ])
 
       setFuncionarios(funcData.funcionarios || funcData.users || [])
       setMesas(mesasData.mesas || [])
       setChamados(chamadosData.chamados || [])
+      setCardapios(cardapioData.itens || cardapioData.cardapios || [])
 
       // Tentar carregar dados da empresa
       if (user?.empresa) {
@@ -137,6 +149,16 @@ const AdminPage = ({ onBackToHome }) => {
     return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   }
 
+  const formatCategoria = (categoria) => {
+    const categorias = {
+      'bebida': 'Bebidas',
+      'prato_principal': 'Pratos Principais',
+      'sobremesa': 'Sobremesas',
+      'entrada': 'Entradas'
+    }
+    return categorias[categoria] || categoria
+  }
+
   // Função para criar nova mesa
   const handleCreateMesa = async (e) => {
     e.preventDefault()
@@ -168,6 +190,49 @@ const AdminPage = ({ onBackToHome }) => {
     } catch (err) {
       console.error('Erro ao criar mesa:', err)
       setError(err.message || 'Erro ao cadastrar mesa')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Função para criar novo produto no cardápio
+  const handleCreateProduto = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      // Validações
+      if (!produtoForm.nome || !produtoForm.preco || !produtoForm.categoria) {
+        throw new Error('Nome, preço e categoria são obrigatórios')
+      }
+
+      if (parseFloat(produtoForm.preco) <= 0) {
+        throw new Error('Preço deve ser maior que zero')
+      }
+
+      const produtoData = {
+        nome: produtoForm.nome,
+        descricao: produtoForm.descricao || '',
+        preco: parseFloat(produtoForm.preco),
+        categoria: produtoForm.categoria
+      }
+
+      const response = await ApiService.createCardapio(produtoData)
+      console.log('Produto criado com sucesso:', response)
+      
+      // Limpar formulário e fechar modal
+      setProdutoForm({ nome: '', descricao: '', preco: '', categoria: '' })
+      setShowProdutoModal(false)
+      
+      // Recarregar dados
+      await loadData()
+      
+      alert('Produto cadastrado com sucesso!')
+    } catch (err) {
+      console.error('Erro completo ao criar produto:', err)
+      console.error('Mensagem:', err.message)
+      setError(err.message || 'Erro ao cadastrar produto')
     } finally {
       setSubmitting(false)
     }
@@ -224,6 +289,7 @@ const AdminPage = ({ onBackToHome }) => {
               { id: 'overview', label: 'Visão Geral', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
               { id: 'users', label: 'Funcionários', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
               { id: 'mesas', label: 'Mesas', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+              { id: 'cardapio', label: 'Cardápio', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
               { id: 'chamados', label: 'Chamados', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
               { id: 'settings', label: 'Configurações', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }
             ].map((tab) => (
@@ -512,6 +578,104 @@ const AdminPage = ({ onBackToHome }) => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {mesa.createdAt ? new Date(mesa.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cardápio Tab */}
+        {activeTab === 'cardapio' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Cardápio</h2>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowProdutoModal(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Novo Produto
+                </button>
+                <button 
+                  onClick={loadData}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Atualizar
+                </button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                <p className="mt-2 text-gray-600">Carregando cardápio...</p>
+              </div>
+            ) : cardapios.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum produto cadastrado</h3>
+                <p className="text-gray-600">Cadastre produtos para montar o cardápio do seu estabelecimento.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disponível</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastro</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {cardapios.map((produto) => (
+                      <tr key={produto._id || produto.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                              <span className="text-purple-700 font-bold">{produto.nome?.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{produto.nome}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {produto.descricao || 'Sem descrição'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm font-medium text-gray-900">
+                            {formatCategoria(produto.categoria)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                          R$ {produto.preco?.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            produto.disponivel !== false 
+                              ? 'bg-green-100 text-green-800 border border-green-200'
+                              : 'bg-gray-100 text-gray-800 border border-gray-200'
+                          }`}>
+                            {produto.disponivel !== false ? 'Disponível' : 'Indisponível'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {produto.createdAt ? new Date(produto.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
                         </td>
                       </tr>
                     ))}
@@ -880,8 +1044,141 @@ const AdminPage = ({ onBackToHome }) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Cadastro de Produto */}
+      {showProdutoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Cadastrar Novo Produto</h3>
+                <button
+                  onClick={() => {
+                    setShowProdutoModal(false)
+                    setProdutoForm({ nome: '', descricao: '', preco: '', categoria: '' })
+                    setError(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleCreateProduto} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome do Produto *
+                  </label>
+                  <input
+                    type="text"
+                    value={produtoForm.nome}
+                    onChange={(e) => setProdutoForm({ ...produtoForm, nome: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: Hambúrguer Artesanal"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descrição
+                  </label>
+                  <textarea
+                    value={produtoForm.descricao}
+                    onChange={(e) => setProdutoForm({ ...produtoForm, descricao: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Descreva o produto..."
+                    rows="3"
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preço (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={produtoForm.preco}
+                    onChange={(e) => setProdutoForm({ ...produtoForm, preco: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: 25.90"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categoria *
+                  </label>
+                  <select
+                    value={produtoForm.categoria}
+                    onChange={(e) => setProdutoForm({ ...produtoForm, categoria: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    required
+                    disabled={submitting}
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    <option value="bebida">Bebidas</option>
+                    <option value="prato_principal">Pratos Principais</option>
+                    <option value="sobremesa">Sobremesas</option>
+                    <option value="entrada">Entradas</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProdutoModal(false)
+                      setProdutoForm({ nome: '', descricao: '', preco: '', categoria: '' })
+                      setError(null)
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={submitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Cadastrando...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Cadastrar Produto
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export default AdminPage
+

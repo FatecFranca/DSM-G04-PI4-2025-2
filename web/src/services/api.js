@@ -260,6 +260,55 @@ class ApiService {
       method: 'DELETE'
     })
   }
+
+  // ============ CARDÁPIO ============
+
+  /**
+   * Criar item do cardápio
+   */
+  static async createCardapio(dados) {
+    return this.request('/cardapios', {
+      method: 'POST',
+      body: JSON.stringify(dados)
+    })
+  }
+
+  /**
+   * Obter todos os itens do cardápio
+   */
+  static async getAllCardapios() {
+    return this.request('/cardapios', {
+      method: 'GET'
+    })
+  }
+
+  /**
+   * Obter um item específico do cardápio
+   */
+  static async getCardapio(id) {
+    return this.request(`/cardapios/${id}`, {
+      method: 'GET'
+    })
+  }
+
+  /**
+   * Atualizar item do cardápio
+   */
+  static async updateCardapio(id, dados) {
+    return this.request(`/cardapios/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dados)
+    })
+  }
+
+  /**
+   * Deletar item do cardápio
+   */
+  static async deleteCardapio(id) {
+    return this.request(`/cardapios/${id}`, {
+      method: 'DELETE'
+    })
+  }
 }
 
 export default ApiService

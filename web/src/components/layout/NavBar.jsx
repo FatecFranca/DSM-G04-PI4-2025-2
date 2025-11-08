@@ -85,15 +85,15 @@ const NavBar = ({ onNavigate }) => {
                 {isGerente && (
                   <>
                     <Button variant="ghost" size="sm" onClick={() => handleMenuClick('admin')}>
-                      ⚙️ Admin
+                       Admin
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleMenuClick('funcionarios')}>
-                      👥 Funcionários
+                       Funcionários
                     </Button>
                   </>
                 )}
                 <Button variant="ghost" size="sm" onClick={() => handleMenuClick('dashboard')}>
-                  📊 Dashboard
+                   Dashboard
                 </Button>
                 <Button 
                   variant="outline" 
