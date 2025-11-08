@@ -1,7 +1,13 @@
 const mongoose = require('mongoose')
 
+const dbUrl = process.env.DATABASE_URL;
+
+if (!dbUrl) {
+  throw new Error("ERRO: DATABASE_URL não definida no .env");
+}
+
 async function main() {
-    await mongoose.connect('mongodb+srv://Vinicius:1235899@cluster0.8wi1zqx.mongodb.net/')
+    await mongoose.connect(dbUrl)
     console.log('Conectado ao banco de dados');
 }
 

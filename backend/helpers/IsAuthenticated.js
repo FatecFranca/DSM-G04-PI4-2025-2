@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const getUserToken = require("../helpers/getUserToken");
+const getUserToken = require("./getUserToken");
 const isAuthenticated = async (req, res, next) => {
   if (!req.headers.authorization) {
     return res.status(422).json({ message: "Acesso negado" });

@@ -9,8 +9,8 @@ router.post('/', ChamadoController.criarChamado);
 
 router.get('/pendentes', isAuthenticated, checkRole(['garcom', 'gerente']), ChamadoController.listarPendentes);
 
-router.patch('/:id/aceitar', isAuthenticated, checkRole(['garcom']), ChamadoController.aceitarChamado);
+router.patch('/:id/aceitar', isAuthenticated, checkRole(['garcom', 'gerente']), ChamadoController.aceitarChamado);
 
-router.patch('/:id/resolver', isAuthenticated, checkRole(['garcom']), ChamadoController.resolverChamado);
+router.patch('/:id/resolver', isAuthenticated, checkRole(['garcom', 'gerente']), ChamadoController.resolverChamado);
 
 module.exports = router;

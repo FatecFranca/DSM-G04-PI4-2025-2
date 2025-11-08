@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -22,6 +23,7 @@ const cardapiosRoutes = require('./routes/cardapiosRoutes')
 const pedidosRoutes = require('./routes/pedidosRoutes')
 const contaRoutes = require('./routes/contaRoutes')
 const pagamentoRoutes = require('./routes/pagamentoRoutes')
+const relatorioRoutes = require('./routes/relatorioRoutes')
 
 app.use('/users', userRoutes)
 app.use('/empresas', empresaRoutes)
@@ -31,6 +33,7 @@ app.use('/cardapios', cardapiosRoutes)
 app.use('/pedidos', pedidosRoutes)
 app.use('/contas', contaRoutes)
 app.use('/pagamentos', pagamentoRoutes)
+app.use('/relatorios', relatorioRoutes)
 
 app.listen(5000, () => {
   console.log('🚀 Servidor rodando na porta 5000')
