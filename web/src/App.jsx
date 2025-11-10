@@ -118,24 +118,54 @@ function App() {
             Sistema completo para controlar estoque, vendas e relatórios de forma intuitiva e segura. Perfeito para restaurantes, bares e estabelecimentos comerciais.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-            <button 
-              onClick={() => setCurrentPage('login')}
-              className="btn-secondary px-8 py-4 text-lg font-semibold rounded-full hover:shadow-lg transition-all"
-            >
-              Fazer Login
-            </button>
-            <button 
-              onClick={() => setCurrentPage('register')}
-              className="btn-primary px-8 py-4 text-lg font-semibold rounded-full hover:shadow-xl transition-all transform hover:scale-105"
-            >
-              Criar Conta Grátis
-            </button>
-          </div>
+          {!isAuthenticated && (
+            <>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                <button 
+                  onClick={() => setCurrentPage('login')}
+                  className="btn-secondary px-8 py-4 text-lg font-semibold rounded-full hover:shadow-lg transition-all"
+                >
+                  Fazer Login
+                </button>
+                <button 
+                  onClick={() => setCurrentPage('register')}
+                  className="btn-primary px-8 py-4 text-lg font-semibold rounded-full hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  Criar Conta Grátis
+                </button>
+              </div>
+              
+              <p className="text-sm text-neutral-500">
+                ✓ Sem cartão de crédito • ✓ Acesso imediato • ✓ Suporte 24/7
+              </p>
+            </>
+          )}
           
-          <p className="text-sm text-neutral-500">
-            ✓ Sem cartão de crédito • ✓ Acesso imediato • ✓ Suporte 24/7
-          </p>
+          {isAuthenticated && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="bg-green-50 border border-green-200 rounded-full px-6 py-3">
+                <p className="text-green-700 font-semibold">
+                  ✓ Você está conectado como {user?.nome || 'Usuário'}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button 
+                  onClick={() => setCurrentPage('dashboard')}
+                  className="btn-primary px-8 py-4 text-lg font-semibold rounded-full hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  Ir para Dashboard
+                </button>
+                {isGerente && (
+                  <button 
+                    onClick={() => setCurrentPage('admin')}
+                    className="btn-secondary px-8 py-4 text-lg font-semibold rounded-full hover:shadow-lg transition-all"
+                  >
+                    Painel Administrativo
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Features Grid */}
@@ -212,18 +242,38 @@ function App() {
             <p className="text-primary-100 text-lg mb-8 max-w-2xl mx-auto">
               Junte-se a centenas de estabelecimentos que já estão otimizando suas operações com DrinkFlow
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                onClick={() => setCurrentPage('register')}
-                className="px-8 py-4 bg-white text-primary-600 font-bold rounded-full hover:shadow-xl hover:scale-105 transition-all"
-              >
-                Começar Grátis Agora
-              </button>
-              
-            </div>
-            <p className="text-primary-100 text-sm mt-6">
-              Sem cartão de crédito necessário. Comece gratuitamente.
-            </p>
+            {!isAuthenticated ? (
+              <>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button 
+                    onClick={() => setCurrentPage('register')}
+                    className="px-8 py-4 bg-white text-primary-600 font-bold rounded-full hover:shadow-xl hover:scale-105 transition-all"
+                  >
+                    Começar Grátis Agora
+                  </button>
+                </div>
+                <p className="text-primary-100 text-sm mt-6">
+                  Sem cartão de crédito necessário. Comece gratuitamente.
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button 
+                  onClick={() => setCurrentPage('dashboard')}
+                  className="px-8 py-4 bg-white text-primary-600 font-bold rounded-full hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  Acessar Dashboard
+                </button>
+                {isGerente && (
+                  <button 
+                    onClick={() => setCurrentPage('admin')}
+                    className="px-8 py-4 bg-primary-800 text-white font-bold rounded-full hover:shadow-xl hover:scale-105 transition-all"
+                  >
+                    Acessar Admin
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

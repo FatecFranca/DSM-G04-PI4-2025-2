@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Button from '../common/Button'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../contexts/AuthContext'
 
 const NavBar = ({ onNavigate }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)

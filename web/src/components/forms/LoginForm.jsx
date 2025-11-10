@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { useState } from 'react'
 import Button from '../common/Button'
 import Footer from '../common/Footer'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../contexts/AuthContext'
 
 const LoginForm = ({ onBackToRegister, onBackToHome, onNavigate }) => {
   const [errorMessage, setErrorMessage] = useState('')
