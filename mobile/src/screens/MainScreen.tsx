@@ -1,20 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Table, Call } from '../types';
 import TableMap from '../features/tables/TableMap';
 import CallList from '../features/calls/CallList';
-import { wsService } from '../services/websocket';
 import * as Haptics from 'expo-haptics';
 import Header from '../components/Header';
 import ProfileModal from '../components/ProfileModal';
 import ActiveCall from '../components/ActiveCall';
+import OrderModal from '../components/OrderModal';
 
 export default function MainScreen() {
   const [isProfileVisible, setIsProfileVisible] = useState(false);
-  const [mapOffset] = useState(new Animated.Value(0));
+  
+  // DADOS MOCKADOS - Para usar dados reais do backend:
+  // 1. Importe: import { mesaAPI } from '../services/api';
+  // 2. Use useEffect para buscar: const mesas = await mesaAPI.listar();
+  // 3. As mesas do backend terão o campo _id (ObjectId do MongoDB)
+  // 4. Adicione table_id ao activeCall quando integrar
+  
+  // 📝 IMPORTANTE: Para testar criação de pedidos:
+  // 1. Crie uma mesa no MongoDB pelo backend
+  // 2. Copie o _id da mesa (ex: '507f1f77bcf86cd799439011')
+  // 3. Cole abaixo no campo table_id
+  
   const [activeCall, setActiveCall] = useState<Call | null>({
     id: '2',
-    tableId: 3,
+    tableId: 3, // ID local para UI
+    table_id: '69114e3c23b718a4bc86fa62', // ✅ ID da mesa criada no MongoDB
     timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
     status: 'in-progress'
   });
@@ -40,13 +52,13 @@ export default function MainScreen() {
       status: 'in-progress'
     }
   ]);
-  const { width, height } = useWindowDimensions();
+  const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
 
   // Simulação local de novos chamados (remova quando integrar com o WebSocket real)
   useEffect(() => {
     // Inicializa o offset do mapa se houver um chamado ativo
     if (activeCall) {
-      mapOffset.setValue(0);
+      //mapOffset.setValue(0);
     }
 
     const simulateNewCall = () => {
@@ -104,24 +116,8 @@ export default function MainScreen() {
         timestamp: new Date().toISOString()
       };
       setActiveCall(updatedCallWithTime);
-      
-      // Animar o mapa para baixo
-      Animated.spring(mapOffset, {
-        toValue: 0, // Ajustado para 0 para evitar espaço extra
-        useNativeDriver: true,
-        tension: 50, // Adiciona uma animação mais suave
-        friction: 8,
-      }).start();
     } else if (status === 'completed') {
       setActiveCall(null);
-      
-      // Animar o mapa de volta para cima
-      Animated.spring(mapOffset, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
     }
 
     setCalls(prev =>
@@ -156,19 +152,13 @@ export default function MainScreen() {
   return (
     <View style={styles.container}>
       <Header onProfilePress={() => setIsProfileVisible(true)} />
-      <Animated.View 
-        style={[
-          styles.content,
-          {
-            transform: [{ translateY: mapOffset }]
-          }
-        ]}
-      >
+      <View style={styles.content}>
         <View style={styles.mapSection}>
           {activeCall && (
             <ActiveCall
               call={activeCall}
               onFinishCall={() => handleCallStatusUpdate(activeCall.id, 'completed')}
+              onMakeOrder={() => setIsOrderModalVisible(true)}
             />
           )}
           <View style={[styles.mapContainer, activeCall && styles.mapContainerWithActiveCall]}>
@@ -192,10 +182,20 @@ export default function MainScreen() {
             onCallStatusUpdate={handleCallStatusUpdate}
           />
         </View>
-      </Animated.View>
+      </View>
       <ProfileModal 
         visible={isProfileVisible}
         onClose={() => setIsProfileVisible(false)}
+      />
+      <OrderModal 
+        visible={isOrderModalVisible}
+        onClose={() => setIsOrderModalVisible(false)}
+        tableId={activeCall?.tableId || 0}
+        table_id={activeCall?.table_id} // ID do MongoDB (opcional)
+        onConfirmOrder={(items) => {
+          console.log('Pedido confirmado:', items);
+          // Aqui você pode implementar a lógica para salvar o pedido
+        }}
       />
     </View>
   );

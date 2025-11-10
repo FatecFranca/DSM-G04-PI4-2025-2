@@ -1,0 +1,21 @@
+declare module 'react-native-svg-charts' {
+  import { ViewStyle } from 'react-native';
+  
+  interface ChartProps {
+    style?: ViewStyle;
+    data: number[];
+    svg?: {
+      fill?: string;
+      stroke?: string;
+    };
+    contentInset?: {
+      top?: number;
+      bottom?: number;
+      left?: number;
+      right?: number;
+    };
+  }
+
+  export class LineChart extends React.Component<ChartProps> {}
+  export class BarChart extends React.Component<ChartProps> {}
+}

@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Call } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ActiveCallProps {
-  call: Call | null;
+  call: Call;
   onFinishCall: () => void;
+  onMakeOrder: () => void;  // Nova prop
 }
 
-export default function ActiveCall({ call, onFinishCall }: ActiveCallProps) {
+export default function ActiveCall({ call, onFinishCall, onMakeOrder }: ActiveCallProps) {
   const [elapsedTime, setElapsedTime] = React.useState(0);
   
   React.useEffect(() => {
@@ -56,12 +57,20 @@ export default function ActiveCall({ call, onFinishCall }: ActiveCallProps) {
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.finishButton}
-          onPress={onFinishCall}
-        >
-          <Text style={styles.buttonText}>Finalizar Atendimento</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={[styles.button, styles.orderButton]} 
+            onPress={onMakeOrder}
+          >
+            <Text style={styles.buttonText}>Fazer Pedido</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.button, styles.finishButton]} 
+            onPress={onFinishCall}
+          >
+            <Text style={styles.buttonText}>Finalizar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -138,23 +147,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0ea5e9',
   },
-  finishButton: {
-    backgroundColor: '#22c55e',
-    padding: 16,
-    borderRadius: 12,
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  button: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  },
+  orderButton: {
+    backgroundColor: '#4CAF50',
+  },
+  finishButton: {
+    backgroundColor: '#f44336',
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
