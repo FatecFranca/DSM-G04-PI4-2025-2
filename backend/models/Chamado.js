@@ -27,7 +27,7 @@ const ChamadoSchema = new Schema(
       type: Date,
     },
   },
-  { timestamp: { createdAt: "timestamp_chamado" } }
+  { timestamps: true }
 );
 
 const Chamado = mongoose.model("Chamado", ChamadoSchema);

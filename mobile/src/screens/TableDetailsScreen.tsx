@@ -1,0 +1,321 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { contaAPI, type Conta } from "@/src/services/api";
+import { router } from "expo-router";
+import OrderModal from "@/src/components/OrderModal";
+import { Ionicons } from "@expo/vector-icons";
+
+interface TableDetailsScreenProps {
+  mesaId: string;
+  mesaNumero: number;
+}
+
+export default function TableDetailsScreen({
+  mesaId,
+  mesaNumero,
+}: TableDetailsScreenProps) {
+  const [conta, setConta] = useState<Conta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
+
+  useEffect(() => {
+    carregarConta();
+  }, [mesaId]);
+
+  const carregarConta = async () => {
+    try {
+      console.log("Carregando conta para mesa:", mesaId);
+      setLoading(true);
+      setError(null);
+      const contaAtiva = await contaAPI.getContaAtiva(mesaId);
+      console.log("Conta carregada:", contaAtiva);
+      setConta(contaAtiva);
+    } catch (error) {
+      console.error("Erro ao carregar conta:", error);
+      setError("Erro ao carregar detalhes da conta");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddPedido = () => {
+    setIsOrderModalVisible(true);
+  };
+
+  const handleRegistrarPagamento = () => {
+    // TODO: Abrir modal de pagamento
+    console.log("Registrar pagamento");
+  };
+
+  // Mostre o loading antes de qualquer outra verificação
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
+      </ThemedView>
+    );
+  }
+
+  // Se tiver erro, mostra a mensagem de erro
+  if (error) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText style={styles.error}>{error}</ThemedText>
+        <TouchableOpacity style={styles.retryButton} onPress={carregarConta}>
+          <ThemedText style={styles.retryButtonText}>
+            Tentar Novamente
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
+
+  // Se não encontrou a conta, mostra mensagem específica
+  if (!conta) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText style={styles.error}>
+          Mesa não possui conta ativa
+        </ThemedText>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => router.back()}
+        >
+          <ThemedText style={styles.retryButtonText}>Voltar</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
+
+  // Calcula o saldo devedor
+  const saldoDevedor = (conta.valor_total || 0) - (conta.valor_pago || 0);
+
+  return (
+    <ThemedView style={styles.container}>
+      {/* Modal de Pedido */}
+      <OrderModal
+        visible={isOrderModalVisible}
+        onClose={() => setIsOrderModalVisible(false)}
+        tableId={mesaNumero}
+        table_id={mesaId}
+        onConfirmOrder={() => {
+          carregarConta();
+          setIsOrderModalVisible(false);
+        }}
+      />
+
+      {/* Cabeçalho */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#0ea5e9" />
+          </TouchableOpacity>
+          <ThemedText style={styles.titulo}>Mesa {mesaNumero}</ThemedText>
+        </View>
+        <ThemedText style={styles.subtitulo}>Conta Ativa</ThemedText>
+      </View>
+
+      {/* Resumo Financeiro */}
+      <View style={styles.resumo}>
+        <View style={styles.kpiContainer}>
+          <ThemedText style={styles.kpiLabel}>Valor Total</ThemedText>
+          <ThemedText style={styles.kpiValue}>
+            R$ {(conta.valor_total || 0).toFixed(2)}
+          </ThemedText>
+        </View>
+
+        <View style={styles.kpiContainer}>
+          <ThemedText style={styles.kpiLabel}>Valor Pago</ThemedText>
+          <ThemedText style={styles.kpiValue}>
+            R$ {(conta.valor_pago || 0).toFixed(2)}
+          </ThemedText>
+        </View>
+
+        <View style={styles.kpiContainer}>
+          <ThemedText style={styles.kpiLabel}>Saldo Devedor</ThemedText>
+          <ThemedText
+            style={[
+              styles.kpiValue,
+              { color: saldoDevedor > 0 ? "#ef4444" : "#22c55e" },
+            ]}
+          >
+            R$ {saldoDevedor.toFixed(2)}
+          </ThemedText>
+        </View>
+      </View>
+
+      {/* Lista de Pedidos */}
+      <ScrollView style={styles.extrato}>
+        {conta.pedidos?.map((pedido) =>
+          pedido.itens.map((item, index) => (
+            <View key={`${pedido._id}-${index}`} style={styles.itemPedido}>
+              <View style={styles.itemInfo}>
+                <ThemedText style={styles.itemQuantidade}>
+                  {item.quantidade}x
+                </ThemedText>
+                <ThemedText style={styles.itemNome}>
+                  {item.item.nome}
+                  {item.observacao && (
+                    <ThemedText style={styles.itemObs}>
+                      {` (${item.observacao})`}
+                    </ThemedText>
+                  )}
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.itemPreco}>
+                R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
+              </ThemedText>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Botões de Ação */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.button, styles.buttonPrimary]}
+          onPress={handleAddPedido}
+        >
+          <ThemedText style={styles.buttonText}>Adicionar Pedido</ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={handleRegistrarPagamento}
+        >
+          <ThemedText style={styles.buttonText}>Registrar Pagamento</ThemedText>
+        </TouchableOpacity>
+      </View>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    paddingTop: 48, // Espaço para a status bar
+  },
+  header: {
+    marginBottom: 24,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  backButton: {
+    marginRight: 16,
+    padding: 8, // Área de toque maior
+    marginLeft: -8, // Compensa o padding para manter alinhamento
+  },
+  titulo: {
+    fontSize: 32,
+    fontWeight: "bold",
+  },
+  subtitulo: {
+    fontSize: 18,
+    opacity: 0.7,
+  },
+  resumo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  kpiContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  kpiLabel: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 4,
+  },
+  kpiValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  extrato: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  itemPedido: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+  },
+  itemInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  itemQuantidade: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginRight: 8,
+  },
+  itemNome: {
+    fontSize: 16,
+  },
+  itemObs: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  itemPreco: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  footer: {
+    gap: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0, 0, 0, 0.1)",
+  },
+  button: {
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  buttonPrimary: {
+    backgroundColor: "#0ea5e9", // azul
+  },
+  buttonSecondary: {
+    backgroundColor: "#22c55e", // verde
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  error: {
+    color: "#ef4444",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: "#0ea5e9",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+});

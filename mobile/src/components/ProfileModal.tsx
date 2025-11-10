@@ -1,14 +1,15 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Modal,
-  ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+  Alert,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useUserStore } from "@/src/stores/userStore";
 
 interface ProfileModalProps {
   visible: boolean;
@@ -16,6 +17,27 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
+  const router = useRouter();
+  const user = useUserStore((state) => state.user);
+  const logout = useUserStore((state) => state.logout);
+
+  const handleLogout = () => {
+    Alert.alert("Sair", "Tem certeza que deseja sair?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: () => {
+          onClose(); // Fecha o modal primeiro
+          setTimeout(() => {
+            logout(); // Faz o logout (agora é síncrono)
+            router.replace("/login"); // Redireciona
+          }, 100);
+        },
+      },
+    ]);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -34,15 +56,22 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
 
           <View style={styles.content}>
             <View style={styles.profileSection}>
-              <Image
-                source={{ uri: 'https://i.pravatar.cc/200' }}
-                style={styles.profileImage}
-              />
-              <Text style={styles.name}>João Silva</Text>
-              <Text style={styles.role}>Garçom</Text>
+              <View style={styles.userIconContainer}>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={80}
+                  color="#0ea5e9"
+                />
+              </View>
+              <Text style={styles.name}>{user?.nome || "Usuário"}</Text>
+              <Text style={styles.role}>{user?.cargo || ""}</Text>
+              <Text style={styles.email}>{user?.email || ""}</Text>
             </View>
 
-            <TouchableOpacity style={styles.logoutButton}>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
               <Ionicons name="log-out-outline" size={24} color="#ef4444" />
               <Text style={styles.logoutText}>Sair</Text>
             </TouchableOpacity>
@@ -56,27 +85,27 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 16, // Garante espaço na parte inferior
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: "#e5e5e5",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#262626',
+    fontWeight: "bold",
+    color: "#262626",
   },
   closeButton: {
     padding: 8,
@@ -85,34 +114,45 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   profileSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 32, // Aumentado para dar mais espaço entre o perfil e o botão
   },
-  profileImage: {
+  userIconContainer: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
+    backgroundColor: "#f0f9ff",
+    borderRadius: 60,
   },
   name: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#262626',
+    fontWeight: "bold",
+    color: "#262626",
     marginBottom: 4,
+    textAlign: "center",
   },
   role: {
     fontSize: 16,
-    color: '#737373',
+    color: "#737373",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  email: {
+    fontSize: 14,
+    color: "#0ea5e9",
+    textAlign: "center",
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
-    backgroundColor: '#fee2e2',
+    backgroundColor: "#fee2e2",
     borderRadius: 12,
     marginHorizontal: 16, // Adiciona margem lateral
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -124,7 +164,7 @@ const styles = StyleSheet.create({
   logoutText: {
     marginLeft: 8,
     fontSize: 16,
-    color: '#ef4444',
-    fontWeight: '600',
+    color: "#ef4444",
+    fontWeight: "600",
   },
 });
