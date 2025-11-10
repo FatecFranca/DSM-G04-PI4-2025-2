@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react'
-import { RegisterForm, LoginForm, NavBar } from './components'
+import { RegisterForm, NavBar } from './components'
 import Dashboard from './pages/Dashboard'
 import AdminPage from './pages/AdminPage'
 import LoginPage from './pages/LoginPage'
 import FuncionariosPage from './pages/FuncionariosPage'
 import SolutionsPage from './pages/SolutionsPage'
-import { useAuth } from './hooks/useAuth'
+import { useAuth } from './contexts/AuthContext'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
   const { user, isAuthenticated, logout, isGerente } = useAuth()
+
+  // Redirecionar para home após login bem-sucedido
+  useEffect(() => {
+    if (isAuthenticated && (currentPage === 'login' || currentPage === 'register')) {
+      setCurrentPage('home')
+    }
+  }, [isAuthenticated, currentPage])
 
   // Proteção de rotas - Apenas usuários autenticados
   useEffect(() => {
@@ -88,7 +95,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-neutral-50 to-secondary-50">
-      <NavBar onNavigate={setCurrentPage} />
+      <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
       
       {/* Hero Section */}
       <div className="container mx-auto px-4">

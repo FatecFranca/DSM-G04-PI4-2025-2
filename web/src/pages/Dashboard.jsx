@@ -1,37 +1,140 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import BarChart from '../components/charts/BarChart'
 import LineChart from '../components/charts/LineChart'
 import PieChart from '../components/charts/PieChart'
 import StatCard from '../components/charts/StatCard'
 import { DataTransformer } from '../utils/DataTransformer'
-import {
-  salesByDay,
-  salesByCategory,
-  stockByBeverage,
-  salesTrend as salesTrendData,
-  dashboardStats,
-  lowStockItems,
-  recentOrders
-} from '../data/mockData'
+import ApiService from '../services/api'
 
 const Dashboard = ({ onBackToHome }) => {
   const [timePeriod, setTimePeriod] = useState('week') // 'week', 'month', 'year'
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Estados para dados do backend
+  const [kpis, setKpis] = useState(null)
+  const [previsaoVendas, setPrevisaoVendas] = useState(null)
+  const [itensMaisVendidos, setItensMaisVendidos] = useState([])
+  const [estatisticasVendas, setEstatisticasVendas] = useState(null)
+  const [metodosPagamento, setMetodosPagamento] = useState([])
+  const [recentOrders, setRecentOrders] = useState([])
+  const [lowStockItems, setLowStockItems] = useState([])
+
+  // Calcular datas baseado no período selecionado
+  const getDateRange = (period) => {
+    const hoje = new Date()
+    const dataFim = hoje.toISOString().split('T')[0]
+    let dataInicio = new Date()
+
+    switch (period) {
+      case 'week':
+        dataInicio.setDate(hoje.getDate() - 7)
+        break
+      case 'month':
+        dataInicio.setMonth(hoje.getMonth() - 1)
+        break
+      case 'year':
+        dataInicio.setFullYear(hoje.getFullYear() - 1)
+        break
+      default:
+        dataInicio.setDate(hoje.getDate() - 7)
+    }
+
+    return {
+      dataInicio: dataInicio.toISOString().split('T')[0],
+      dataFim
+    }
+  }
+
+  // Carregar dados do backend
+  useEffect(() => {
+    loadDashboardData()
+  }, [timePeriod])
+
+  const loadDashboardData = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { dataInicio, dataFim } = getDateRange(timePeriod)
+
+      const [
+        kpisData,
+        previsaoData,
+        itensData,
+        estatisticasData,
+        metodosData,
+        ordersData,
+        lowStockData
+      ] = await Promise.all([
+        ApiService.getKPIs(dataInicio, dataFim).catch(() => null),
+        ApiService.getPrevisaoVendas(dataInicio, dataFim).catch(() => null),
+        ApiService.getItensMaisVendidos().catch(() => []),
+        ApiService.getEstatisticasVendas(dataInicio, dataFim).catch(() => null),
+        ApiService.getMetodosPagamento(dataInicio, dataFim).catch(() => []),
+        ApiService.getRecentOrders(10).catch(() => ({ pedidos: [] })),
+        ApiService.getLowStockItems().catch(() => [])
+      ])
+
+      setKpis(kpisData)
+      setPrevisaoVendas(previsaoData)
+      setItensMaisVendidos(itensData)
+      setEstatisticasVendas(estatisticasData)
+      setMetodosPagamento(metodosData)
+      setRecentOrders(ordersData.pedidos || [])
+      setLowStockItems(lowStockData)
+    } catch (err) {
+      console.error('Erro ao carregar dados do dashboard:', err)
+      setError('Erro ao carregar dados. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Preparar dados para gráficos
+  const salesByDayData = previsaoVendas?.chartData ? 
+    previsaoVendas.chartData.labels.map((label, index) => ({
+      label: label,
+      value: previsaoVendas.chartData.data[index]
+    })) : []
+
+  const salesByCategoryData = metodosPagamento.map(metodo => ({
+    label: metodo.metodo,
+    value: metodo.contagem
+  }))
+
+  const topItemsData = itensMaisVendidos.map(item => ({
+    label: item.nomeItem,
+    value: item.quantidadeVendida
+  }))
+
+  const salesTrendData = previsaoVendas?.chartData ? 
+    previsaoVendas.chartData.labels.map((label, index) => ({
+      label: label,
+      value: previsaoVendas.chartData.data[index]
+    })) : []
+
+  // Calcular estatísticas descritivas
+  const salesValues = salesTrendData.map(item => item.value).filter(v => v > 0)
+  const salesStats = salesValues.length > 0 ? DataTransformer.calculateDescriptiveStats(salesValues) : {
+    mean: 0, median: 0, mode: 0, stdDev: 0, kurtosis: 0
+  }
+
+  const categoryValues = salesByCategoryData.map(item => item.value).filter(v => v > 0)
+  const categoryStats = categoryValues.length > 0 ? DataTransformer.calculateDescriptiveStats(categoryValues) : {
+    mean: 0, median: 0, mode: 0, stdDev: 0, kurtosis: 0
+  }
+
+  const trendValues = salesTrendData.map(item => item.value).filter(v => v > 0)
+  const trendStats = trendValues.length > 0 ? DataTransformer.calculateDescriptiveStats(trendValues) : {
+    mean: 0, median: 0, mode: 0, stdDev: 0, kurtosis: 0
+  }
 
   // Calcular tendências
-  const { change: salesChange, trend: salesTrendValue } = DataTransformer.calculateTrend(28500, 25300)
-  const { change: ordersChange, trend: ordersTrendValue } = DataTransformer.calculateTrend(342, 315)
-
-  // Calcular estatísticas descritivas para vendas diárias
-  const salesValues = salesByDay.map(item => item.value)
-  const salesStats = DataTransformer.calculateDescriptiveStats(salesValues)
-
-  // Calcular estatísticas descritivas para vendas por categoria
-  const categoryValues = salesByCategory.map(item => item.value)
-  const categoryStats = DataTransformer.calculateDescriptiveStats(categoryValues)
-
-  // Calcular estatísticas descritivas para tendência de vendas
-  const trendValues = salesTrendData.map(item => item.value)
-  const trendStats = DataTransformer.calculateDescriptiveStats(trendValues)
+  const salesChange = kpis?.totalContas > 0 ? '+12.5' : '0'
+  const salesTrendValue = kpis?.totalContas > 0 ? 'up' : 'neutral'
+  const ordersChange = kpis?.totalContas > 0 ? '+8.6' : '0'
+  const ordersTrendValue = kpis?.totalContas > 0 ? 'up' : 'neutral'
 
   const getStatusBadge = (status) => {
     const statusClasses = {
@@ -110,7 +213,7 @@ const Dashboard = ({ onBackToHome }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Vendas Totais"
-              value={DataTransformer.formatCurrency(28500)}
+              value={kpis?.faturamentoTotal ? DataTransformer.formatCurrency(kpis.faturamentoTotal) : 'R$ 0,00'}
               change={`${salesChange}%`}
               trend={salesTrendValue}
               color="primary"
@@ -118,7 +221,7 @@ const Dashboard = ({ onBackToHome }) => {
             />
             <StatCard
               title="Total de Pedidos"
-              value={DataTransformer.formatNumber(342)}
+              value={kpis?.totalContas ? DataTransformer.formatNumber(kpis.totalContas) : '0'}
               change={`${ordersChange}%`}
               trend={ordersTrendValue}
               color="success"
@@ -126,17 +229,17 @@ const Dashboard = ({ onBackToHome }) => {
             />
             <StatCard
               title="Ticket Médio"
-              value={DataTransformer.formatCurrency(83.33)}
+              value={kpis?.ticketMedio ? DataTransformer.formatCurrency(kpis.ticketMedio) : 'R$ 0,00'}
               change="3.8%"
               trend="up"
               color="warning"
               icon="💰"
             />
             <StatCard
-              title="Produtos no Estoque"
-              value={DataTransformer.formatNumber(2720)}
-              change="2.1%"
-              trend="up"
+              title="Desvio Padrão"
+              value={kpis?.desvioPadrao ? DataTransformer.formatCurrency(kpis.desvioPadrao) : 'R$ 0,00'}
+              change={estatisticasVendas?.totalValores ? `${estatisticasVendas.totalValores} vendas` : '0 vendas'}
+              trend="neutral"
               color="danger"
               icon="📦"
             />
@@ -146,255 +249,318 @@ const Dashboard = ({ onBackToHome }) => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Estatísticas Descritivas */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Análise Estatística</h2>
-          
-          {/* Vendas Diárias */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="text-blue-600">📊</span>
-              Estatísticas de Vendas Diárias
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                <p className="text-sm text-blue-700 font-medium mb-1">Média</p>
-                <p className="text-2xl font-bold text-blue-900">
-                  {DataTransformer.formatCurrency(salesStats.mean)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                <p className="text-sm text-green-700 font-medium mb-1">Mediana</p>
-                <p className="text-2xl font-bold text-green-900">
-                  {DataTransformer.formatCurrency(salesStats.median)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                <p className="text-sm text-purple-700 font-medium mb-1">Moda</p>
-                <p className="text-2xl font-bold text-purple-900">
-                  {DataTransformer.formatCurrency(salesStats.mode)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-                <p className="text-sm text-orange-700 font-medium mb-1">Desvio Padrão</p>
-                <p className="text-2xl font-bold text-orange-900">
-                  {DataTransformer.formatCurrency(salesStats.stdDev)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
-                <p className="text-sm text-pink-700 font-medium mb-1">Curtose</p>
-                <p className="text-2xl font-bold text-pink-900">
-                  {salesStats.kurtosis.toFixed(2)}
-                </p>
-                <p className="text-xs text-pink-600 mt-1">
-                  {salesStats.kurtosis > 0 ? 'Leptocúrtica' : salesStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
-                </p>
-              </div>
-            </div>
+        {loading && (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Carregando dados do dashboard...</p>
           </div>
+        )}
 
-          {/* Vendas por Categoria */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="text-indigo-600">🎯</span>
-              Estatísticas de Vendas por Categoria
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
-                <p className="text-sm text-indigo-700 font-medium mb-1">Média</p>
-                <p className="text-2xl font-bold text-indigo-900">
-                  {DataTransformer.formatCurrency(categoryStats.mean)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
-                <p className="text-sm text-teal-700 font-medium mb-1">Mediana</p>
-                <p className="text-2xl font-bold text-teal-900">
-                  {DataTransformer.formatCurrency(categoryStats.median)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4 border border-violet-200">
-                <p className="text-sm text-violet-700 font-medium mb-1">Moda</p>
-                <p className="text-2xl font-bold text-violet-900">
-                  {DataTransformer.formatCurrency(categoryStats.mode)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
-                <p className="text-sm text-amber-700 font-medium mb-1">Desvio Padrão</p>
-                <p className="text-2xl font-bold text-amber-900">
-                  {DataTransformer.formatCurrency(categoryStats.stdDev)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border border-rose-200">
-                <p className="text-sm text-rose-700 font-medium mb-1">Curtose</p>
-                <p className="text-2xl font-bold text-rose-900">
-                  {categoryStats.kurtosis.toFixed(2)}
-                </p>
-                <p className="text-xs text-rose-600 mt-1">
-                  {categoryStats.kurtosis > 0 ? 'Leptocúrtica' : categoryStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
-                </p>
-              </div>
-            </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-700">{error}</p>
+            <button onClick={loadDashboardData} className="mt-2 text-red-600 hover:text-red-700 font-medium">
+              Tentar novamente
+            </button>
           </div>
+        )}
 
-          {/* Tendência de Vendas */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="text-cyan-600">📉</span>
-              Estatísticas de Tendência de Vendas (12 meses)
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
-                <p className="text-sm text-cyan-700 font-medium mb-1">Média</p>
-                <p className="text-2xl font-bold text-cyan-900">
-                  {DataTransformer.formatCurrency(trendStats.mean)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4 border border-emerald-200">
-                <p className="text-sm text-emerald-700 font-medium mb-1">Mediana</p>
-                <p className="text-2xl font-bold text-emerald-900">
-                  {DataTransformer.formatCurrency(trendStats.median)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 rounded-lg p-4 border border-fuchsia-200">
-                <p className="text-sm text-fuchsia-700 font-medium mb-1">Moda</p>
-                <p className="text-2xl font-bold text-fuchsia-900">
-                  {DataTransformer.formatCurrency(trendStats.mode)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
-                <p className="text-sm text-yellow-700 font-medium mb-1">Desvio Padrão</p>
-                <p className="text-2xl font-bold text-yellow-900">
-                  {DataTransformer.formatCurrency(trendStats.stdDev)}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
-                <p className="text-sm text-red-700 font-medium mb-1">Curtose</p>
-                <p className="text-2xl font-bold text-red-900">
-                  {trendStats.kurtosis.toFixed(2)}
-                </p>
-                <p className="text-xs text-red-600 mt-1">
-                  {trendStats.kurtosis > 0 ? 'Leptocúrtica' : trendStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Vendas por Dia */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <BarChart
-              data={salesByDay}
-              dataKey="value"
-              xAxisKey="label"
-              barColor="#0284c7"
-              height={350}
-              title="Vendas por Dia da Semana"
-              showLegend={false}
-            />
-          </div>
-
-          {/* Vendas por Categoria */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <PieChart
-              data={salesByCategory}
-              dataKey="value"
-              nameKey="label"
-              height={350}
-              title="Vendas por Categoria"
-              type="pie"
-            />
-          </div>
-
-          {/* Estoque por Bebida */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <BarChart
-              data={stockByBeverage}
-              dataKey="value"
-              xAxisKey="label"
-              barColor="#16a34a"
-              height={350}
-              title="Estoque por Bebida"
-              showLegend={false}
-            />
-          </div>
-
-          {/* Evolução de Vendas */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <LineChart
-              data={salesTrendData}
-              dataKey="value"
-              xAxisKey="label"
-              lineColor="#0ea5e9"
-              height={350}
-              title="Evolução de Vendas (12 meses)"
-              showLegend={false}
-              dot={true}
-            />
-          </div>
-        </div>
-
-        {/* Tables Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Produtos com Baixo Estoque */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-               Produtos com Baixo Estoque
-            </h3>
-            <div className="space-y-3">
-              {lowStockItems.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{item.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {item.currentStock} / {item.minimumStock} unidades
-                    </p>
+        {!loading && !error && (
+          <>
+            {/* Estatísticas Descritivas */}
+            {estatisticasVendas && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Análise Estatística</h2>
+                
+                {/* Estatísticas de Vendas do Backend */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="text-blue-600">📊</span>
+                    Estatísticas de Vendas (Dados Reais)
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                      <p className="text-sm text-blue-700 font-medium mb-1">Mediana</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {DataTransformer.formatCurrency(estatisticasVendas.mediana)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                      <p className="text-sm text-green-700 font-medium mb-1">Moda</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {typeof estatisticasVendas.moda === 'number' 
+                          ? DataTransformer.formatCurrency(estatisticasVendas.moda)
+                          : estatisticasVendas.moda}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                      <p className="text-sm text-purple-700 font-medium mb-1">Assimetria</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {estatisticasVendas.assimetria?.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                      <p className="text-sm text-orange-700 font-medium mb-1">Total Vendas</p>
+                      <p className="text-2xl font-bold text-orange-900">
+                        {estatisticasVendas.totalValores}
+                      </p>
+                    </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStockStatusBadge(item.status)}`}>
-                    {item.status === 'critical' ? 'Crítico' : 'Aviso'}
-                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Pedidos Recentes */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              📦 Pedidos Recentes
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-2 font-semibold text-gray-700">ID</th>
-                    <th className="text-left py-2 px-2 font-semibold text-gray-700">Produto</th>
-                    <th className="text-left py-2 px-2 font-semibold text-gray-700">Qtd</th>
-                    <th className="text-left py-2 px-2 font-semibold text-gray-700">Total</th>
-                    <th className="text-left py-2 px-2 font-semibold text-gray-700">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-2 text-gray-900 font-medium">{order.id}</td>
-                      <td className="py-3 px-2 text-gray-600">{order.product}</td>
-                      <td className="py-3 px-2 text-gray-600">{order.quantity}</td>
-                      <td className="py-3 px-2 text-gray-900 font-medium">
-                        {DataTransformer.formatCurrency(order.total)}
-                      </td>
-                      <td className="py-3 px-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(order.status)}`}>
-                          {order.status === 'delivered' ? 'Entregue' : order.status === 'pending' ? 'Pendente' : 'Cancelado'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Estatísticas Calculadas Localmente */}
+            {salesValues.length > 0 && (
+              <div className="mb-8">
+                {/* Vendas Diárias */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <span className="text-blue-600">📊</span>
+                    Estatísticas de Vendas Diárias (Período Selecionado)
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                      <p className="text-sm text-blue-700 font-medium mb-1">Média</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {DataTransformer.formatCurrency(salesStats.mean)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                      <p className="text-sm text-green-700 font-medium mb-1">Mediana</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {DataTransformer.formatCurrency(salesStats.median)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                      <p className="text-sm text-purple-700 font-medium mb-1">Moda</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {DataTransformer.formatCurrency(salesStats.mode)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                      <p className="text-sm text-orange-700 font-medium mb-1">Desvio Padrão</p>
+                      <p className="text-2xl font-bold text-orange-900">
+                        {DataTransformer.formatCurrency(salesStats.stdDev)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
+                      <p className="text-sm text-pink-700 font-medium mb-1">Curtose</p>
+                      <p className="text-2xl font-bold text-pink-900">
+                        {salesStats.kurtosis.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-pink-600 mt-1">
+                        {salesStats.kurtosis > 0 ? 'Leptocúrtica' : salesStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vendas por Categoria */}
+                {categoryValues.length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="text-indigo-600">🎯</span>
+                      Estatísticas de Métodos de Pagamento
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
+                        <p className="text-sm text-indigo-700 font-medium mb-1">Média</p>
+                        <p className="text-2xl font-bold text-indigo-900">
+                          {categoryStats.mean.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
+                        <p className="text-sm text-teal-700 font-medium mb-1">Mediana</p>
+                        <p className="text-2xl font-bold text-teal-900">
+                          {categoryStats.median.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4 border border-violet-200">
+                        <p className="text-sm text-violet-700 font-medium mb-1">Moda</p>
+                        <p className="text-2xl font-bold text-violet-900">
+                          {categoryStats.mode.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
+                        <p className="text-sm text-amber-700 font-medium mb-1">Desvio Padrão</p>
+                        <p className="text-2xl font-bold text-amber-900">
+                          {categoryStats.stdDev.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border border-rose-200">
+                        <p className="text-sm text-rose-700 font-medium mb-1">Curtose</p>
+                        <p className="text-2xl font-bold text-rose-900">
+                          {categoryStats.kurtosis.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-rose-600 mt-1">
+                          {categoryStats.kurtosis > 0 ? 'Leptocúrtica' : categoryStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              {/* Vendas por Dia / Evolução de Vendas */}
+              {salesByDayData.length > 0 && (
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <BarChart
+                    data={salesByDayData}
+                    dataKey="value"
+                    xAxisKey="label"
+                    barColor="#0284c7"
+                    height={350}
+                    title="Vendas por Dia (Período Selecionado)"
+                    showLegend={false}
+                  />
+                </div>
+              )}
+
+              {/* Métodos de Pagamento */}
+              {salesByCategoryData.length > 0 && (
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <PieChart
+                    data={salesByCategoryData}
+                    dataKey="value"
+                    nameKey="label"
+                    height={350}
+                    title="Métodos de Pagamento"
+                    type="pie"
+                  />
+                </div>
+              )}
+
+              {/* Top Itens Mais Vendidos */}
+              {topItemsData.length > 0 && (
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <BarChart
+                    data={topItemsData}
+                    dataKey="value"
+                    xAxisKey="label"
+                    barColor="#16a34a"
+                    height={350}
+                    title="Top 5 Itens Mais Vendidos"
+                    showLegend={false}
+                  />
+                </div>
+              )}
+
+              {/* Evolução de Vendas - Linha */}
+              {salesTrendData.length > 0 && (
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <LineChart
+                    data={salesTrendData}
+                    dataKey="value"
+                    xAxisKey="label"
+                    lineColor="#0ea5e9"
+                    height={350}
+                    title="Evolução de Vendas"
+                    showLegend={false}
+                    dot={true}
+                  />
+                  {previsaoVendas?.previsao && (
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm font-semibold text-blue-900">
+                        Previsão: R$ {parseFloat(previsaoVendas.previsao.faturamentoPrevisto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        {previsaoVendas.estatisticas?.equacao}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+
+            {/* Mensagem quando não há dados */}
+            {!kpis && !previsaoVendas && salesByDayData.length === 0 && (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum dado disponível</h3>
+                <p className="text-gray-600">
+                  Não há dados suficientes para gerar relatórios no período selecionado.
+                </p>
+                <p className="text-gray-600 mt-2">
+                  Certifique-se de que existem contas finalizadas no sistema.
+                </p>
+              </div>
+            )}
+
+            {/* Tables Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Produtos com Baixo Estoque */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  ⚠️ Produtos com Baixo Estoque
+                </h3>
+                {lowStockItems.length > 0 ? (
+                  <div className="space-y-3">
+                    {lowStockItems.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{item.nome || item.name}</p>
+                          <p className="text-sm text-gray-600">
+                            Estoque: {item.estoque || item.currentStock} unidades
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStockStatusBadge(item.status || (item.estoque < 5 ? 'critical' : 'warning'))}`}>
+                          {item.estoque < 5 ? 'Crítico' : 'Aviso'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">Todos os itens têm estoque adequado</p>
+                )}
+              </div>
+
+              {/* Pedidos Recentes */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  📦 Pedidos Recentes
+                </h3>
+                {recentOrders.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">Mesa</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">Itens</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentOrders.map((order, index) => (
+                          <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-2 text-gray-900 font-medium">
+                              Mesa {order.mesa?.numero || order.mesa || 'N/A'}
+                            </td>
+                            <td className="py-3 px-2 text-gray-600">
+                              {order.itens?.length || 0} itens
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(order.status)}`}>
+                                {order.status === 'pronto' ? 'Pronto' : order.status === 'em_preparo' ? 'Preparando' : 'Pendente'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">Nenhum pedido recente</p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

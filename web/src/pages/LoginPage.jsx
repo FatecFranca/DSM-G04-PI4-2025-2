@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../contexts/AuthContext'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 
@@ -69,7 +69,7 @@ const LoginPage = ({ onNavigate }) => {
 
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Senha / PIN
+              Senha 
             </label>
             <Input
               type="password"
@@ -92,11 +92,12 @@ const LoginPage = ({ onNavigate }) => {
         </form>
 
         <div className="mt-6 text-center text-sm text-neutral-600">
-          <p>Demo: Use email para login de teste</p>
+          
         </div>
       </div>
     </div>
   )
 }
+
 
 export default LoginPage

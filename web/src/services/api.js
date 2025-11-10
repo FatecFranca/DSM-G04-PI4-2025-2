@@ -309,6 +309,132 @@ class ApiService {
       method: 'DELETE'
     })
   }
+
+  // ============ RELATÓRIOS ============
+
+  /**
+   * Obter KPIs de vendas (faturamento, ticket médio, intervalo de confiança)
+   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
+   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
+   */
+  static async getKPIs(dataInicio = null, dataFim = null) {
+    const params = new URLSearchParams()
+    if (dataInicio) params.append('dataInicio', dataInicio)
+    if (dataFim) params.append('dataFim', dataFim)
+    
+    const queryString = params.toString()
+    return this.request(`/relatorios/kpis${queryString ? '?' + queryString : ''}`, {
+      method: 'GET'
+    })
+  }
+
+  /**
+   * Obter previsão de vendas com regressão linear
+   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
+   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
+   */
+  static async getPrevisaoVendas(dataInicio = null, dataFim = null) {
+    const params = new URLSearchParams()
+    if (dataInicio) params.append('dataInicio', dataInicio)
+    if (dataFim) params.append('dataFim', dataFim)
+    
+    const queryString = params.toString()
+    return this.request(`/relatorios/previsao-vendas${queryString ? '?' + queryString : ''}`, {
+      method: 'GET'
+    })
+  }
+
+  /**
+   * Obter 5 itens mais vendidos
+   */
+  static async getItensMaisVendidos() {
+    return this.request('/relatorios/itens-mais-vendidos', {
+      method: 'GET'
+    })
+  }
+
+  /**
+   * Obter estatísticas de vendas (moda, mediana, assimetria)
+   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
+   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
+   */
+  static async getEstatisticasVendas(dataInicio = null, dataFim = null) {
+    const params = new URLSearchParams()
+    if (dataInicio) params.append('dataInicio', dataInicio)
+    if (dataFim) params.append('dataFim', dataFim)
+    
+    const queryString = params.toString()
+    return this.request(`/relatorios/estatisticas-vendas${queryString ? '?' + queryString : ''}`, {
+      method: 'GET'
+    })
+  }
+
+  /**
+   * Obter distribuição de métodos de pagamento
+   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
+   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
+   */
+  static async getMetodosPagamento(dataInicio = null, dataFim = null) {
+    const params = new URLSearchParams()
+    if (dataInicio) params.append('dataInicio', dataInicio)
+    if (dataFim) params.append('dataFim', dataFim)
+    
+    const queryString = params.toString()
+    return this.request(`/relatorios/metodos-pagamento${queryString ? '?' + queryString : ''}`, {
+      method: 'GET'
+    })
+  }
+
+  // ============ DASHBOARD ============
+
+  /**
+   * Obter estatísticas gerais do dashboard
+   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
+   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
+   */
+  static async getDashboardStats(dataInicio = null, dataFim = null) {
+    const params = new URLSearchParams()
+    if (dataInicio) params.append('dataInicio', dataInicio)
+    if (dataFim) params.append('dataFim', dataFim)
+    
+    const queryString = params.toString()
+    
+    // Buscar dados de múltiplos endpoints e consolidar
+    const [kpis, itens, estatisticas] = await Promise.all([
+      this.getKPIs(dataInicio, dataFim).catch(() => null),
+      this.getItensMaisVendidos().catch(() => []),
+      this.getEstatisticasVendas(dataInicio, dataFim).catch(() => null)
+    ])
+    
+    return {
+      kpis,
+      topItems: itens,
+      statistics: estatisticas
+    }
+  }
+
+  /**
+   * Obter pedidos recentes
+   * @param {number} limit - Número de pedidos a retornar
+   */
+  static async getRecentOrders(limit = 10) {
+    // Assumindo que existe um endpoint de pedidos
+    return this.request(`/pedidos?limit=${limit}`, {
+      method: 'GET'
+    }).catch(() => ({ pedidos: [] }))
+  }
+
+  /**
+   * Obter itens com baixo estoque
+   */
+  static async getLowStockItems() {
+    // Buscar todos os itens do cardápio e filtrar os que têm estoque baixo
+    const response = await this.getAllCardapios().catch(() => ({ itens: [] }))
+    const itens = response.itens || response.cardapios || []
+    
+    // Filtrar itens com estoque baixo (se houver campo de estoque)
+    return itens.filter(item => item.estoque && item.estoque < 10)
+  }
 }
 
 export default ApiService

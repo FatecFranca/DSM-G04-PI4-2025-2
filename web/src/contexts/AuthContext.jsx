@@ -1,11 +1,9 @@
-import { useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import ApiService from '../services/api'
 
-/**
- * Hook para autenticação
- * Gerencia login, logout e estado do usuário
- */
-export const useAuth = () => {
+const AuthContext = createContext(null)
+
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => ApiService.getLoggedUser())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -34,7 +32,7 @@ export const useAuth = () => {
   const isAuthenticated = !!user
   const isGerente = user?.cargo === 'gerente'
 
-  return {
+  const value = {
     user,
     login,
     logout,
@@ -43,5 +41,14 @@ export const useAuth = () => {
     isAuthenticated,
     isGerente
   }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
- 
+
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}

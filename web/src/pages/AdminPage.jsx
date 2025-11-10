@@ -2,11 +2,12 @@
 import StatCard from '../components/charts/StatCard'
 import BarChart from '../components/charts/BarChart'
 import PieChart from '../components/charts/PieChart'
+import LineChart from '../components/charts/LineChart'
 import ApiService from '../services/api'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../contexts/AuthContext'
 
 const AdminPage = ({ onBackToHome }) => {
-  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'users', 'mesas', 'cardapio', 'chamados', 'settings'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'users', 'mesas', 'cardapio', 'chamados', 'relatorios'
   const [selectedPeriod, setSelectedPeriod] = useState('month')
   const { user } = useAuth()
 
@@ -19,12 +20,21 @@ const AdminPage = ({ onBackToHome }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Estados para relatórios
+  const [kpis, setKpis] = useState(null)
+  const [previsaoVendas, setPrevisaoVendas] = useState(null)
+  const [itensMaisVendidos, setItensMaisVendidos] = useState([])
+  const [estatisticasVendas, setEstatisticasVendas] = useState(null)
+  const [metodosPagamento, setMetodosPagamento] = useState([])
+  const [loadingRelatorios, setLoadingRelatorios] = useState(false)
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
+
   // Estados para modal de cadastro de mesa
   const [showMesaModal, setShowMesaModal] = useState(false)
   const [mesaForm, setMesaForm] = useState({
     numero: '',
-    capacidade: '',
-    localizacao: ''
+    id_botao: ''
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -41,6 +51,13 @@ const AdminPage = ({ onBackToHome }) => {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Carregar relatórios quando a tab for selecionada
+  useEffect(() => {
+    if (activeTab === 'relatorios') {
+      loadRelatorios()
+    }
+  }, [activeTab, dataInicio, dataFim])
 
   const loadData = async () => {
     setLoading(true)
@@ -72,6 +89,35 @@ const AdminPage = ({ onBackToHome }) => {
       setError('Erro ao carregar dados do sistema')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadRelatorios = async () => {
+    setLoadingRelatorios(true)
+    try {
+      const [
+        kpisData,
+        previsaoData,
+        itensData,
+        estatisticasData,
+        metodosData
+      ] = await Promise.all([
+        ApiService.getKPIs(dataInicio, dataFim).catch(() => null),
+        ApiService.getPrevisaoVendas(dataInicio, dataFim).catch(() => null),
+        ApiService.getItensMaisVendidos().catch(() => []),
+        ApiService.getEstatisticasVendas(dataInicio, dataFim).catch(() => null),
+        ApiService.getMetodosPagamento(dataInicio, dataFim).catch(() => [])
+      ])
+
+      setKpis(kpisData)
+      setPrevisaoVendas(previsaoData)
+      setItensMaisVendidos(itensData)
+      setEstatisticasVendas(estatisticasData)
+      setMetodosPagamento(metodosData)
+    } catch (err) {
+      console.error('Erro ao carregar relatórios:', err)
+    } finally {
+      setLoadingRelatorios(false)
     }
   }
 
@@ -167,20 +213,19 @@ const AdminPage = ({ onBackToHome }) => {
 
     try {
       // Validações
-      if (!mesaForm.numero || !mesaForm.capacidade) {
-        throw new Error('Número da mesa e capacidade são obrigatórios')
+      if (!mesaForm.numero || !mesaForm.id_botao) {
+        throw new Error('Número da mesa e ID do botão são obrigatórios')
       }
 
       const mesaData = {
         numero: parseInt(mesaForm.numero),
-        capacidade: parseInt(mesaForm.capacidade),
-        localizacao: mesaForm.localizacao || 'Não especificada'
+        id_botao: mesaForm.id_botao
       }
 
       await ApiService.createMesa(mesaData)
       
       // Limpar formulário e fechar modal
-      setMesaForm({ numero: '', capacidade: '', localizacao: '' })
+      setMesaForm({ numero: '', id_botao: '' })
       setShowMesaModal(false)
       
       // Recarregar dados
@@ -291,7 +336,7 @@ const AdminPage = ({ onBackToHome }) => {
               { id: 'mesas', label: 'Mesas', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
               { id: 'cardapio', label: 'Cardápio', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
               { id: 'chamados', label: 'Chamados', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
-              { id: 'settings', label: 'Configurações', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }
+              { id: 'relatorios', label: 'Relatórios', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -538,11 +583,8 @@ const AdminPage = ({ onBackToHome }) => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidade</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localização</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID do Botão</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">QR Code</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastro</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -558,26 +600,25 @@ const AdminPage = ({ onBackToHome }) => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {mesa.capacidade || 'N/A'} pessoas
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {mesa.localizacao || 'Não especificada'}
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(mesa.ocupada ? 'ocupada' : 'disponivel')}`}>
-                            {getStatusText(mesa.ocupada ? 'ocupada' : 'disponivel')}
+                          <span className="text-sm font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded">
+                            {mesa.id_botao || 'N/A'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {mesa.qrCode ? (
-                            <span className="text-green-600 font-medium">✓ Gerado</span>
-                          ) : (
-                            <span className="text-gray-400">Não gerado</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {mesa.createdAt ? new Date(mesa.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            mesa.status === 'livre' ? 'bg-green-100 text-green-800 border border-green-200' :
+                            mesa.status === 'ocupada' ? 'bg-red-100 text-red-800 border border-red-200' :
+                            mesa.status === 'aguardando_atendimento' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                            mesa.status === 'aguardando_pagamento' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            'bg-gray-100 text-gray-800 border border-gray-200'
+                          }`}>
+                            {mesa.status === 'livre' ? 'Livre' :
+                             mesa.status === 'ocupada' ? 'Ocupada' :
+                             mesa.status === 'aguardando_atendimento' ? 'Aguardando Atendimento' :
+                             mesa.status === 'aguardando_pagamento' ? 'Aguardando Pagamento' :
+                             mesa.status || 'Disponível'}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -773,160 +814,240 @@ const AdminPage = ({ onBackToHome }) => {
           </div>
         )}
 
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
+        {/* Relatórios Tab */}
+        {activeTab === 'relatorios' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Configurações do Sistema</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Relatórios e Análises</h2>
+              <button 
+                onClick={loadRelatorios}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Atualizar
+              </button>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* General Settings */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Informações da Empresa</h3>
-                {empresa ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Estabelecimento</label>
-                      <input 
-                        type="text" 
-                        value={empresa.nome || ''} 
-                        disabled
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
+            {/* Filtros de Data */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros de Período</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                  <input 
+                    type="date"
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                  <input 
+                    type="date"
+                    value={dataFim}
+                    onChange={(e) => setDataFim(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              {(dataInicio || dataFim) && (
+                <button 
+                  onClick={() => { setDataInicio(''); setDataFim(''); }}
+                  className="mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Limpar Filtros
+                </button>
+              )}
+            </div>
+
+            {loadingRelatorios ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                <p className="mt-2 text-gray-600">Carregando relatórios...</p>
+              </div>
+            ) : (
+              <>
+                {/* KPIs - Cards de Métricas */}
+                {kpis && (
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Indicadores Principais (KPIs)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <StatCard
+                        title="Faturamento Total"
+                        value={`R$ ${kpis.faturamentoTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        trend="neutral"
+                        icon={
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                      />
+                      <StatCard
+                        title="Total de Contas"
+                        value={kpis.totalContas?.toLocaleString()}
+                        trend="neutral"
+                        icon={
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        }
+                      />
+                      <StatCard
+                        title="Ticket Médio"
+                        value={`R$ ${kpis.ticketMedio?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        trend="neutral"
+                        change={`IC 95%: R$ ${kpis.intervaloConfiancaTicketMedio?.limiteInferior} - R$ ${kpis.intervaloConfiancaTicketMedio?.limiteSuperior}`}
+                        icon={
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        }
+                      />
+                      <StatCard
+                        title="Desvio Padrão"
+                        value={`R$ ${kpis.desvioPadrao?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        trend="neutral"
+                        icon={
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                          </svg>
+                        }
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ</label>
-                      <input 
-                        type="text" 
-                        value={empresa.cnpj || ''} 
-                        disabled
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Estabelecimento</label>
-                      <input 
-                        type="text" 
-                        value={empresa.tipo || ''} 
-                        disabled
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 capitalize" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Data de Cadastro</label>
-                      <input 
-                        type="text" 
-                        value={empresa.createdAt ? new Date(empresa.createdAt).toLocaleDateString('pt-BR') : 'N/A'} 
-                        disabled
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">Informações da empresa não disponíveis</p>
                   </div>
                 )}
-              </div>
 
-              {/* User Info */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Informações do Gerente</h3>
-                <div className="space-y-4">
+                {/* Gráfico de Previsão de Vendas */}
+                {previsaoVendas && previsaoVendas.chartData && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Previsão de Vendas</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Análise de tendência com regressão linear (R² = {previsaoVendas.estatisticas?.R_squared})
+                    </p>
+                    <LineChart 
+                      data={previsaoVendas.chartData.labels.map((label, index) => ({
+                        data: label,
+                        faturamento: previsaoVendas.chartData.data[index]
+                      }))}
+                      xAxisKey="data"
+                      dataKey="faturamento"
+                      title=""
+                      height={300}
+                    />
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-2">Previsão para o Próximo Período</h4>
+                      <p className="text-blue-800">
+                        {previsaoVendas.previsao?.proximoPeriodoLabel}: 
+                        <span className="font-bold ml-2">R$ {parseFloat(previsaoVendas.previsao?.faturamentoPrevisto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </p>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Equação: {previsaoVendas.estatisticas?.equacao}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Itens Mais Vendidos */}
+                {itensMaisVendidos && itensMaisVendidos.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
-                    <input 
-                      type="text" 
-                      value={user?.nome || ''} 
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Top 5 Itens Mais Vendidos</h3>
+                    <BarChart 
+                      data={itensMaisVendidos.map(item => ({
+                        name: item.nomeItem,
+                        vendas: item.quantidadeVendida
+                      }))}
+                      title=""
+                      dataKey="vendas"
+                      xAxisKey="name"
+                      barColor="#10b981"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input 
-                      type="email" 
-                      value={user?.email || ''} 
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
-                    <input 
-                      type="text" 
-                      value={user?.cargo || ''} 
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 capitalize" 
-                    />
-                  </div>
-                </div>
-              </div>
+                )}
 
-              {/* Statistics */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Estatísticas do Sistema</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Total de Funcionários</span>
-                    <span className="text-lg font-semibold text-gray-900">{stats.totalUsers}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Funcionários Ativos</span>
-                    <span className="text-lg font-semibold text-green-600">{stats.activeUsers}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Total de Mesas</span>
-                    <span className="text-lg font-semibold text-gray-900">{stats.totalMesas}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Mesas Ocupadas</span>
-                    <span className="text-lg font-semibold text-orange-600">{stats.mesasOcupadas}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Chamados Pendentes</span>
-                    <span className="text-lg font-semibold text-yellow-600">{stats.chamadosPendentes}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-600">Chamados Resolvidos</span>
-                    <span className="text-lg font-semibold text-green-600">{stats.chamadosAtendidos}</span>
-                  </div>
-                </div>
-              </div>
+                {/* Grid com Estatísticas e Métodos de Pagamento */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Estatísticas de Vendas */}
+                  {estatisticasVendas && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Estatísticas de Vendas</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <span className="text-gray-700 font-medium">Mediana</span>
+                          <span className="text-gray-900 font-bold">
+                            R$ {estatisticasVendas.mediana?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <span className="text-gray-700 font-medium">Moda</span>
+                          <span className="text-gray-900 font-bold">
+                            {typeof estatisticasVendas.moda === 'number' 
+                              ? `R$ ${estatisticasVendas.moda?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : estatisticasVendas.moda}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <span className="text-gray-700 font-medium">Assimetria</span>
+                          <span className="text-gray-900 font-bold">
+                            {estatisticasVendas.assimetria?.toFixed(4)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <span className="text-gray-700 font-medium">Total de Valores</span>
+                          <span className="text-gray-900 font-bold">
+                            {estatisticasVendas.totalValores?.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                        <p><strong>Interpretação da Assimetria:</strong></p>
+                        <p className="mt-1">
+                          {estatisticasVendas.assimetria > 0.5 
+                            ? '📈 Distribuição assimétrica à direita (valores altos menos frequentes)'
+                            : estatisticasVendas.assimetria < -0.5
+                            ? '📉 Distribuição assimétrica à esquerda (valores baixos menos frequentes)'
+                            : '📊 Distribuição aproximadamente simétrica'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Quick Actions */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
-                <div className="space-y-3">
-                  <button 
-                    onClick={loadData}
-                    className="w-full px-4 py-3 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Atualizar Todos os Dados
-                  </button>
-                  <button className="w-full px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Exportar Relatório
-                  </button>
-                  <button className="w-full px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Ver Logs do Sistema
-                  </button>
-                  <button className="w-full px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Configurações Avançadas
-                  </button>
+                  {/* Métodos de Pagamento */}
+                  {metodosPagamento && metodosPagamento.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Métodos de Pagamento</h3>
+                      <PieChart 
+                        data={metodosPagamento.map(metodo => ({
+                          label: metodo.metodo,
+                          value: metodo.contagem
+                        }))}
+                        title=""
+                        dataKey="value"
+                        nameKey="label"
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+
+                {/* Mensagem quando não há dados */}
+                {!kpis && !previsaoVendas && !itensMaisVendidos?.length && !estatisticasVendas && !metodosPagamento?.length && (
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum dado disponível</h3>
+                    <p className="text-gray-600">
+                      Não há dados suficientes para gerar relatórios no período selecionado.
+                    </p>
+                    <p className="text-gray-600 mt-2">
+                      Certifique-se de que existem contas finalizadas no sistema.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -941,7 +1062,7 @@ const AdminPage = ({ onBackToHome }) => {
                 <button
                   onClick={() => {
                     setShowMesaModal(false)
-                    setMesaForm({ numero: '', capacidade: '', localizacao: '' })
+                    setMesaForm({ numero: '', id_botao: '' })
                     setError(null)
                   }}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -977,33 +1098,20 @@ const AdminPage = ({ onBackToHome }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Capacidade (pessoas) *
-                  </label>
-                  <input
-                    type="number"
-                    value={mesaForm.capacidade}
-                    onChange={(e) => setMesaForm({ ...mesaForm, capacidade: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Ex: 2, 4, 6..."
-                    required
-                    min="1"
-                    max="20"
-                    disabled={submitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Localização
+                    ID do Botão *
                   </label>
                   <input
                     type="text"
-                    value={mesaForm.localizacao}
-                    onChange={(e) => setMesaForm({ ...mesaForm, localizacao: e.target.value })}
+                    value={mesaForm.id_botao}
+                    onChange={(e) => setMesaForm({ ...mesaForm, id_botao: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Ex: Salão Principal, Varanda, Área Externa..."
+                    placeholder="Ex: BTN001, BTN002, MESA01..."
+                    required
                     disabled={submitting}
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Identificador único do botão físico da mesa
+                  </p>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -1011,7 +1119,7 @@ const AdminPage = ({ onBackToHome }) => {
                     type="button"
                     onClick={() => {
                       setShowMesaModal(false)
-                      setMesaForm({ numero: '', capacidade: '', localizacao: '' })
+                      setMesaForm({ numero: '', id_botao: '' })
                       setError(null)
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
