@@ -1,62 +1,62 @@
-import { useState, useEffect } from 'react'
-import BarChart from '../components/charts/BarChart'
-import LineChart from '../components/charts/LineChart'
-import PieChart from '../components/charts/PieChart'
-import StatCard from '../components/charts/StatCard'
-import { DataTransformer } from '../utils/DataTransformer'
-import ApiService from '../services/api'
+import { useState, useEffect } from "react";
+import BarChart from "../components/charts/BarChart";
+import LineChart from "../components/charts/LineChart";
+import PieChart from "../components/charts/PieChart";
+import StatCard from "../components/charts/StatCard";
+import { DataTransformer } from "../utils/DataTransformer";
+import ApiService from "../services/api";
 
 const Dashboard = ({ onBackToHome }) => {
-  const [timePeriod, setTimePeriod] = useState('week') // 'week', 'month', 'year'
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [timePeriod, setTimePeriod] = useState("week"); // 'week', 'month', 'year'
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Estados para dados do backend
-  const [kpis, setKpis] = useState(null)
-  const [previsaoVendas, setPrevisaoVendas] = useState(null)
-  const [itensMaisVendidos, setItensMaisVendidos] = useState([])
-  const [estatisticasVendas, setEstatisticasVendas] = useState(null)
-  const [metodosPagamento, setMetodosPagamento] = useState([])
-  const [recentOrders, setRecentOrders] = useState([])
-  const [lowStockItems, setLowStockItems] = useState([])
+  const [kpis, setKpis] = useState(null);
+  const [previsaoVendas, setPrevisaoVendas] = useState(null);
+  const [itensMaisVendidos, setItensMaisVendidos] = useState([]);
+  const [estatisticasVendas, setEstatisticasVendas] = useState(null);
+  const [metodosPagamento, setMetodosPagamento] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
 
   // Calcular datas baseado no período selecionado
   const getDateRange = (period) => {
-    const hoje = new Date()
-    const dataFim = hoje.toISOString().split('T')[0]
-    let dataInicio = new Date()
+    const hoje = new Date();
+    const dataFim = hoje.toISOString().split("T")[0];
+    let dataInicio = new Date();
 
     switch (period) {
-      case 'week':
-        dataInicio.setDate(hoje.getDate() - 7)
-        break
-      case 'month':
-        dataInicio.setMonth(hoje.getMonth() - 1)
-        break
-      case 'year':
-        dataInicio.setFullYear(hoje.getFullYear() - 1)
-        break
+      case "week":
+        dataInicio.setDate(hoje.getDate() - 7);
+        break;
+      case "month":
+        dataInicio.setMonth(hoje.getMonth() - 1);
+        break;
+      case "year":
+        dataInicio.setFullYear(hoje.getFullYear() - 1);
+        break;
       default:
-        dataInicio.setDate(hoje.getDate() - 7)
+        dataInicio.setDate(hoje.getDate() - 7);
     }
 
     return {
-      dataInicio: dataInicio.toISOString().split('T')[0],
-      dataFim
-    }
-  }
+      dataInicio: dataInicio.toISOString().split("T")[0],
+      dataFim,
+    };
+  };
 
   // Carregar dados do backend
   useEffect(() => {
-    loadDashboardData()
-  }, [timePeriod])
+    loadDashboardData();
+  }, [timePeriod]);
 
   const loadDashboardData = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const { dataInicio, dataFim } = getDateRange(timePeriod)
+      const { dataInicio, dataFim } = getDateRange(timePeriod);
 
       const [
         kpisData,
@@ -65,7 +65,7 @@ const Dashboard = ({ onBackToHome }) => {
         estatisticasData,
         metodosData,
         ordersData,
-        lowStockData
+        lowStockData,
       ] = await Promise.all([
         ApiService.getKPIs(dataInicio, dataFim).catch(() => null),
         ApiService.getPrevisaoVendas(dataInicio, dataFim).catch(() => null),
@@ -73,86 +73,120 @@ const Dashboard = ({ onBackToHome }) => {
         ApiService.getEstatisticasVendas(dataInicio, dataFim).catch(() => null),
         ApiService.getMetodosPagamento(dataInicio, dataFim).catch(() => []),
         ApiService.getRecentOrders(10).catch(() => ({ pedidos: [] })),
-        ApiService.getLowStockItems().catch(() => [])
-      ])
+        ApiService.getLowStockItems().catch(() => []),
+      ]);
 
-      setKpis(kpisData)
-      setPrevisaoVendas(previsaoData)
-      setItensMaisVendidos(itensData)
-      setEstatisticasVendas(estatisticasData)
-      setMetodosPagamento(metodosData)
-      setRecentOrders(ordersData.pedidos || [])
-      setLowStockItems(lowStockData)
+      setKpis(kpisData);
+      setPrevisaoVendas(previsaoData);
+      setItensMaisVendidos(itensData);
+      setEstatisticasVendas(estatisticasData);
+      setMetodosPagamento(metodosData);
+      setRecentOrders(ordersData.pedidos || []);
+      setLowStockItems(lowStockData);
     } catch (err) {
-      console.error('Erro ao carregar dados do dashboard:', err)
-      setError('Erro ao carregar dados. Tente novamente.')
+      console.error("Erro ao carregar dados do dashboard:", err);
+      setError("Erro ao carregar dados. Tente novamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Preparar dados para gráficos
-  const salesByDayData = previsaoVendas?.chartData ? 
-    previsaoVendas.chartData.labels.map((label, index) => ({
-      label: label,
-      value: previsaoVendas.chartData.data[index]
-    })) : []
+  const salesByDayData = previsaoVendas?.chartData
+    ? previsaoVendas.chartData.labels.map((label, index) => ({
+        label: label,
+        value: previsaoVendas.chartData.data[index],
+      }))
+    : [];
 
-  const salesByCategoryData = metodosPagamento.map(metodo => ({
+  const salesByCategoryData = metodosPagamento.map((metodo) => ({
     label: metodo.metodo,
-    value: metodo.contagem
-  }))
+    value: metodo.contagem,
+  }));
 
-  const topItemsData = itensMaisVendidos.map(item => ({
+  const topItemsData = itensMaisVendidos.map((item) => ({
     label: item.nomeItem,
-    value: item.quantidadeVendida
-  }))
+    value: item.quantidadeVendida,
+  }));
 
-  const salesTrendData = previsaoVendas?.chartData ? 
-    previsaoVendas.chartData.labels.map((label, index) => ({
-      label: label,
-      value: previsaoVendas.chartData.data[index]
-    })) : []
+  // Construir a série de tendência usando os dados históricos + a previsão do próximo período
+  const salesTrendData = (() => {
+    if (!previsaoVendas) return [];
+
+    const labels = previsaoVendas.chartData?.labels || [];
+    const dataArr = previsaoVendas.chartData?.data || [];
+
+    const points = labels.map((label, i) => ({
+      label,
+      value: dataArr[i] != null ? Number(dataArr[i]) : 0,
+    }));
+
+    // Se o backend retornar uma previsão para o próximo período, adiciona como ponto previsto
+    if (
+      previsaoVendas.previsao &&
+      previsaoVendas.previsao.faturamentoPrevisto != null
+    ) {
+      points.push({
+        label: previsaoVendas.previsao.proximoPeriodoLabel || "Previsto",
+        value: Number(previsaoVendas.previsao.faturamentoPrevisto),
+      });
+    }
+
+    return points;
+  })();
 
   // Calcular estatísticas descritivas
-  const salesValues = salesTrendData.map(item => item.value).filter(v => v > 0)
-  const salesStats = salesValues.length > 0 ? DataTransformer.calculateDescriptiveStats(salesValues) : {
-    mean: 0, median: 0, mode: 0, stdDev: 0, kurtosis: 0
-  }
+  const salesValues = salesTrendData
+    .map((item) => item.value)
+    .filter((v) => v > 0);
+  const salesStats =
+    salesValues.length > 0
+      ? DataTransformer.calculateDescriptiveStats(salesValues)
+      : {
+          mean: 0,
+          median: 0,
+          mode: 0,
+          stdDev: 0,
+          kurtosis: 0,
+        };
 
-  const categoryValues = salesByCategoryData.map(item => item.value).filter(v => v > 0)
-  const categoryStats = categoryValues.length > 0 ? DataTransformer.calculateDescriptiveStats(categoryValues) : {
-    mean: 0, median: 0, mode: 0, stdDev: 0, kurtosis: 0
-  }
-
-  const trendValues = salesTrendData.map(item => item.value).filter(v => v > 0)
-  const trendStats = trendValues.length > 0 ? DataTransformer.calculateDescriptiveStats(trendValues) : {
-    mean: 0, median: 0, mode: 0, stdDev: 0, kurtosis: 0
-  }
+  const categoryValues = salesByCategoryData
+    .map((item) => item.value)
+    .filter((v) => v > 0);
+  const categoryStats =
+    categoryValues.length > 0
+      ? DataTransformer.calculateDescriptiveStats(categoryValues)
+      : {
+          mean: 0,
+          median: 0,
+          mode: 0,
+          stdDev: 0,
+          kurtosis: 0,
+        };
 
   // Calcular tendências
-  const salesChange = kpis?.totalContas > 0 ? '+12.5' : '0'
-  const salesTrendValue = kpis?.totalContas > 0 ? 'up' : 'neutral'
-  const ordersChange = kpis?.totalContas > 0 ? '+8.6' : '0'
-  const ordersTrendValue = kpis?.totalContas > 0 ? 'up' : 'neutral'
+  const salesChange = kpis?.totalContas > 0 ? "+12.5" : "0";
+  const salesTrendValue = kpis?.totalContas > 0 ? "up" : "neutral";
+  const ordersChange = kpis?.totalContas > 0 ? "+8.6" : "0";
+  const ordersTrendValue = kpis?.totalContas > 0 ? "up" : "neutral";
 
   const getStatusBadge = (status) => {
     const statusClasses = {
-      delivered: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      cancelled: 'bg-red-100 text-red-800'
-    }
-    return statusClasses[status] || statusClasses.pending
-  }
+      delivered: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      cancelled: "bg-red-100 text-red-800",
+    };
+    return statusClasses[status] || statusClasses.pending;
+  };
 
   const getStockStatusBadge = (status) => {
     const statusClasses = {
-      critical: 'bg-red-100 text-red-800 border border-red-300',
-      warning: 'bg-yellow-100 text-yellow-800 border border-yellow-300',
-      ok: 'bg-green-100 text-green-800 border border-green-300'
-    }
-    return statusClasses[status] || statusClasses.ok
-  }
+      critical: "bg-red-100 text-red-800 border border-red-300",
+      warning: "bg-yellow-100 text-yellow-800 border border-yellow-300",
+      ok: "bg-green-100 text-green-800 border border-green-300",
+    };
+    return statusClasses[status] || statusClasses.ok;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -165,43 +199,55 @@ const Dashboard = ({ onBackToHome }) => {
                 onClick={onBackToHome}
                 className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors font-medium"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
                 </svg>
                 Voltar
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-1">Bem-vindo ao painel de análises</p>
+                <p className="text-gray-600 mt-1">
+                  Bem-vindo ao painel de análises
+                </p>
               </div>
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => setTimePeriod('week')}
+                onClick={() => setTimePeriod("week")}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  timePeriod === 'week'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  timePeriod === "week"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                 }`}
               >
                 Semana
               </button>
               <button
-                onClick={() => setTimePeriod('month')}
+                onClick={() => setTimePeriod("month")}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  timePeriod === 'month'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  timePeriod === "month"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                 }`}
               >
                 Mês
               </button>
               <button
-                onClick={() => setTimePeriod('year')}
+                onClick={() => setTimePeriod("year")}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  timePeriod === 'year'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  timePeriod === "year"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                 }`}
               >
                 Ano
@@ -213,7 +259,11 @@ const Dashboard = ({ onBackToHome }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Vendas Totais"
-              value={kpis?.faturamentoTotal ? DataTransformer.formatCurrency(kpis.faturamentoTotal) : 'R$ 0,00'}
+              value={
+                kpis?.faturamentoTotal
+                  ? DataTransformer.formatCurrency(kpis.faturamentoTotal)
+                  : "R$ 0,00"
+              }
               change={`${salesChange}%`}
               trend={salesTrendValue}
               color="primary"
@@ -221,7 +271,11 @@ const Dashboard = ({ onBackToHome }) => {
             />
             <StatCard
               title="Total de Pedidos"
-              value={kpis?.totalContas ? DataTransformer.formatNumber(kpis.totalContas) : '0'}
+              value={
+                kpis?.totalContas
+                  ? DataTransformer.formatNumber(kpis.totalContas)
+                  : "0"
+              }
               change={`${ordersChange}%`}
               trend={ordersTrendValue}
               color="success"
@@ -229,7 +283,11 @@ const Dashboard = ({ onBackToHome }) => {
             />
             <StatCard
               title="Ticket Médio"
-              value={kpis?.ticketMedio ? DataTransformer.formatCurrency(kpis.ticketMedio) : 'R$ 0,00'}
+              value={
+                kpis?.ticketMedio
+                  ? DataTransformer.formatCurrency(kpis.ticketMedio)
+                  : "R$ 0,00"
+              }
               change="3.8%"
               trend="up"
               color="warning"
@@ -237,8 +295,16 @@ const Dashboard = ({ onBackToHome }) => {
             />
             <StatCard
               title="Desvio Padrão"
-              value={kpis?.desvioPadrao ? DataTransformer.formatCurrency(kpis.desvioPadrao) : 'R$ 0,00'}
-              change={estatisticasVendas?.totalValores ? `${estatisticasVendas.totalValores} vendas` : '0 vendas'}
+              value={
+                kpis?.desvioPadrao
+                  ? DataTransformer.formatCurrency(kpis.desvioPadrao)
+                  : "R$ 0,00"
+              }
+              change={
+                estatisticasVendas?.totalValores
+                  ? `${estatisticasVendas.totalValores} vendas`
+                  : "0 vendas"
+              }
               trend="neutral"
               color="danger"
               icon="📦"
@@ -252,14 +318,19 @@ const Dashboard = ({ onBackToHome }) => {
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">Carregando dados do dashboard...</p>
+            <p className="mt-4 text-gray-600">
+              Carregando dados do dashboard...
+            </p>
           </div>
         )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
             <p className="text-red-700">{error}</p>
-            <button onClick={loadDashboardData} className="mt-2 text-red-600 hover:text-red-700 font-medium">
+            <button
+              onClick={loadDashboardData}
+              className="mt-2 text-red-600 hover:text-red-700 font-medium"
+            >
               Tentar novamente
             </button>
           </div>
@@ -270,8 +341,10 @@ const Dashboard = ({ onBackToHome }) => {
             {/* Estatísticas Descritivas */}
             {estatisticasVendas && (
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Análise Estatística</h2>
-                
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  📈 Análise Estatística
+                </h2>
+
                 {/* Estatísticas de Vendas do Backend */}
                 <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -280,27 +353,39 @@ const Dashboard = ({ onBackToHome }) => {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                      <p className="text-sm text-blue-700 font-medium mb-1">Mediana</p>
+                      <p className="text-sm text-blue-700 font-medium mb-1">
+                        Mediana
+                      </p>
                       <p className="text-2xl font-bold text-blue-900">
-                        {DataTransformer.formatCurrency(estatisticasVendas.mediana)}
+                        {DataTransformer.formatCurrency(
+                          estatisticasVendas.mediana
+                        )}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                      <p className="text-sm text-green-700 font-medium mb-1">Moda</p>
+                      <p className="text-sm text-green-700 font-medium mb-1">
+                        Moda
+                      </p>
                       <p className="text-2xl font-bold text-green-900">
-                        {typeof estatisticasVendas.moda === 'number' 
-                          ? DataTransformer.formatCurrency(estatisticasVendas.moda)
+                        {typeof estatisticasVendas.moda === "number"
+                          ? DataTransformer.formatCurrency(
+                              estatisticasVendas.moda
+                            )
                           : estatisticasVendas.moda}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                      <p className="text-sm text-purple-700 font-medium mb-1">Assimetria</p>
+                      <p className="text-sm text-purple-700 font-medium mb-1">
+                        Assimetria
+                      </p>
                       <p className="text-2xl font-bold text-purple-900">
                         {estatisticasVendas.assimetria?.toFixed(2)}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-                      <p className="text-sm text-orange-700 font-medium mb-1">Total Vendas</p>
+                      <p className="text-sm text-orange-700 font-medium mb-1">
+                        Total Vendas
+                      </p>
                       <p className="text-2xl font-bold text-orange-900">
                         {estatisticasVendas.totalValores}
                       </p>
@@ -321,36 +406,50 @@ const Dashboard = ({ onBackToHome }) => {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                      <p className="text-sm text-blue-700 font-medium mb-1">Média</p>
+                      <p className="text-sm text-blue-700 font-medium mb-1">
+                        Média
+                      </p>
                       <p className="text-2xl font-bold text-blue-900">
                         {DataTransformer.formatCurrency(salesStats.mean)}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                      <p className="text-sm text-green-700 font-medium mb-1">Mediana</p>
+                      <p className="text-sm text-green-700 font-medium mb-1">
+                        Mediana
+                      </p>
                       <p className="text-2xl font-bold text-green-900">
                         {DataTransformer.formatCurrency(salesStats.median)}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                      <p className="text-sm text-purple-700 font-medium mb-1">Moda</p>
+                      <p className="text-sm text-purple-700 font-medium mb-1">
+                        Moda
+                      </p>
                       <p className="text-2xl font-bold text-purple-900">
                         {DataTransformer.formatCurrency(salesStats.mode)}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-                      <p className="text-sm text-orange-700 font-medium mb-1">Desvio Padrão</p>
+                      <p className="text-sm text-orange-700 font-medium mb-1">
+                        Desvio Padrão
+                      </p>
                       <p className="text-2xl font-bold text-orange-900">
                         {DataTransformer.formatCurrency(salesStats.stdDev)}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
-                      <p className="text-sm text-pink-700 font-medium mb-1">Curtose</p>
+                      <p className="text-sm text-pink-700 font-medium mb-1">
+                        Curtose
+                      </p>
                       <p className="text-2xl font-bold text-pink-900">
                         {salesStats.kurtosis.toFixed(2)}
                       </p>
                       <p className="text-xs text-pink-600 mt-1">
-                        {salesStats.kurtosis > 0 ? 'Leptocúrtica' : salesStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                        {salesStats.kurtosis > 0
+                          ? "Leptocúrtica"
+                          : salesStats.kurtosis < 0
+                          ? "Platicúrtica"
+                          : "Mesocúrtica"}
                       </p>
                     </div>
                   </div>
@@ -365,36 +464,50 @@ const Dashboard = ({ onBackToHome }) => {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
-                        <p className="text-sm text-indigo-700 font-medium mb-1">Média</p>
+                        <p className="text-sm text-indigo-700 font-medium mb-1">
+                          Média
+                        </p>
                         <p className="text-2xl font-bold text-indigo-900">
                           {categoryStats.mean.toFixed(0)}
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
-                        <p className="text-sm text-teal-700 font-medium mb-1">Mediana</p>
+                        <p className="text-sm text-teal-700 font-medium mb-1">
+                          Mediana
+                        </p>
                         <p className="text-2xl font-bold text-teal-900">
                           {categoryStats.median.toFixed(0)}
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4 border border-violet-200">
-                        <p className="text-sm text-violet-700 font-medium mb-1">Moda</p>
+                        <p className="text-sm text-violet-700 font-medium mb-1">
+                          Moda
+                        </p>
                         <p className="text-2xl font-bold text-violet-900">
                           {categoryStats.mode.toFixed(0)}
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
-                        <p className="text-sm text-amber-700 font-medium mb-1">Desvio Padrão</p>
+                        <p className="text-sm text-amber-700 font-medium mb-1">
+                          Desvio Padrão
+                        </p>
                         <p className="text-2xl font-bold text-amber-900">
                           {categoryStats.stdDev.toFixed(0)}
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border border-rose-200">
-                        <p className="text-sm text-rose-700 font-medium mb-1">Curtose</p>
+                        <p className="text-sm text-rose-700 font-medium mb-1">
+                          Curtose
+                        </p>
                         <p className="text-2xl font-bold text-rose-900">
                           {categoryStats.kurtosis.toFixed(2)}
                         </p>
                         <p className="text-xs text-rose-600 mt-1">
-                          {categoryStats.kurtosis > 0 ? 'Leptocúrtica' : categoryStats.kurtosis < 0 ? 'Platicúrtica' : 'Mesocúrtica'}
+                          {categoryStats.kurtosis > 0
+                            ? "Leptocúrtica"
+                            : categoryStats.kurtosis < 0
+                            ? "Platicúrtica"
+                            : "Mesocúrtica"}
                         </p>
                       </div>
                     </div>
@@ -465,7 +578,13 @@ const Dashboard = ({ onBackToHome }) => {
                   {previsaoVendas?.previsao && (
                     <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                       <p className="text-sm font-semibold text-blue-900">
-                        Previsão: R$ {parseFloat(previsaoVendas.previsao.faturamentoPrevisto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        Previsão: R${" "}
+                        {parseFloat(
+                          previsaoVendas.previsao.faturamentoPrevisto
+                        ).toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                       <p className="text-xs text-blue-700 mt-1">
                         {previsaoVendas.estatisticas?.equacao}
@@ -479,12 +598,25 @@ const Dashboard = ({ onBackToHome }) => {
             {/* Mensagem quando não há dados */}
             {!kpis && !previsaoVendas && salesByDayData.length === 0 && (
               <div className="bg-gray-50 rounded-lg p-8 text-center">
-                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg
+                  className="w-16 h-16 mx-auto text-gray-400 mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum dado disponível</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Nenhum dado disponível
+                </h3>
                 <p className="text-gray-600">
-                  Não há dados suficientes para gerar relatórios no período selecionado.
+                  Não há dados suficientes para gerar relatórios no período
+                  selecionado.
                 </p>
                 <p className="text-gray-600 mt-2">
                   Certifique-se de que existem contas finalizadas no sistema.
@@ -502,21 +634,34 @@ const Dashboard = ({ onBackToHome }) => {
                 {lowStockItems.length > 0 ? (
                   <div className="space-y-3">
                     {lowStockItems.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      >
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.nome || item.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {item.nome || item.name}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            Estoque: {item.estoque || item.currentStock} unidades
+                            Estoque: {item.estoque || item.currentStock}{" "}
+                            unidades
                           </p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStockStatusBadge(item.status || (item.estoque < 5 ? 'critical' : 'warning'))}`}>
-                          {item.estoque < 5 ? 'Crítico' : 'Aviso'}
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getStockStatusBadge(
+                            item.status ||
+                              (item.estoque < 5 ? "critical" : "warning")
+                          )}`}
+                        >
+                          {item.estoque < 5 ? "Crítico" : "Aviso"}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-4">Todos os itens têm estoque adequado</p>
+                  <p className="text-gray-500 text-center py-4">
+                    Todos os itens têm estoque adequado
+                  </p>
                 )}
               </div>
 
@@ -530,23 +675,40 @@ const Dashboard = ({ onBackToHome }) => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200">
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">Mesa</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">Itens</th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">Status</th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">
+                            Mesa
+                          </th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">
+                            Itens
+                          </th>
+                          <th className="text-left py-2 px-2 font-semibold text-gray-700">
+                            Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {recentOrders.map((order, index) => (
-                          <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                          <tr
+                            key={index}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
                             <td className="py-3 px-2 text-gray-900 font-medium">
-                              Mesa {order.mesa?.numero || order.mesa || 'N/A'}
+                              Mesa {order.mesa?.numero || order.mesa || "N/A"}
                             </td>
                             <td className="py-3 px-2 text-gray-600">
                               {order.itens?.length || 0} itens
                             </td>
                             <td className="py-3 px-2">
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(order.status)}`}>
-                                {order.status === 'pronto' ? 'Pronto' : order.status === 'em_preparo' ? 'Preparando' : 'Pendente'}
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
+                                  order.status
+                                )}`}
+                              >
+                                {order.status === "pronto"
+                                  ? "Pronto"
+                                  : order.status === "em_preparo"
+                                  ? "Preparando"
+                                  : "Pendente"}
                               </span>
                             </td>
                           </tr>
@@ -555,7 +717,9 @@ const Dashboard = ({ onBackToHome }) => {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-4">Nenhum pedido recente</p>
+                  <p className="text-gray-500 text-center py-4">
+                    Nenhum pedido recente
+                  </p>
                 )}
               </div>
             </div>
@@ -563,7 +727,7 @@ const Dashboard = ({ onBackToHome }) => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;
