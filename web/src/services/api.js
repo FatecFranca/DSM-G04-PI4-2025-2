@@ -1,46 +1,57 @@
-/**
- * Serviço de API para integração com backend DrinkFlow
- * Base URL: http://localhost:5000
- */
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response, 
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; 
+
+      try {
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) throw new Error("Refresh token não encontrado");
+        const rs = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          token: refreshToken,
+        });
+
+        const { accessToken } = rs.data;
+        localStorage.setItem("accessToken", accessToken);
+
+        originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (_error) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+        return Promise.reject(_error);
+      }
+    }
+
+    // Se o erro não for 401, só repassa o erro
+    return Promise.reject(error);
+  }
+);
 
 class ApiService {
-  /**
-   * Método auxiliar para fazer requisições
-   */
-  static async request(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`
-    const token = localStorage.getItem('token')
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    }
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || `Erro ${response.status}`)
-      }
-
-      return data
-    } catch (error) {
-      console.error(`Erro na requisição ${endpoint}:`, error)
-      throw error
-    }
-  }
-
   // ============ AUTENTICAÇÃO ============
 
   /**
@@ -49,35 +60,38 @@ class ApiService {
    * @param {string} credencial - Senha (gerente) ou PIN (funcionário)
    */
   static async login(email, credencial) {
-    const response = await this.request('/users/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, credencial })
-    })
-
-    if (response.token) {
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user))
+    const response = await axios.post(`${API_BASE_URL}/users/login`, {
+      email,
+      credencial,
+    });
+    if (response.data.accessToken) {
+      localStorage.setItem("accessToken", response.data.accessToken); // ⬅️ Novo nome
+      localStorage.setItem("refreshToken", response.data.refreshToken); // ⬅️ Novo token
+      localStorage.setItem("user", JSON.stringify(response.data.user));
     }
 
-    return response
+    return response.data;
+  }
+  static async logout() {
+
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) {
+      try {
+        await api.post("/auth/logout", { token: refreshToken });
+      } catch (error) {
+        console.error("Erro ao fazer logout no backend:", error);
+      }
+    }
+
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
   }
 
-  /**
-   * Logout do usuário
-   */
-  static logout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
-
-  /**
-   * Obter usuário logado
-   */
   static getLoggedUser() {
-    const user = localStorage.getItem('user')
-    return user ? JSON.parse(user) : null
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
   }
-
   // ============ FUNCIONÁRIOS ============
 
   /**
@@ -85,356 +99,166 @@ class ApiService {
    * @param {object} funcionario - {nome, email, cpf, cargo}
    */
   static async addFuncionario(funcionario) {
-    return this.request('/users/register', {
-      method: 'POST',
-      body: JSON.stringify(funcionario)
-    })
+    const response = await api.post("/users/register", funcionario);
+    return response.data;
   }
-
-  /**
-   * Obter todos os funcionários da empresa (apenas gerente)
-   */
   static async getAllFuncionarios() {
-    return this.request('/users', {
-      method: 'GET'
-    })
+    const response = await api.get("/users");
+    return response.data;
   }
-
-  /**
-   * Obter um funcionário específico (apenas gerente)
-   * @param {string} id - ID do funcionário
-   */
   static async getFuncionario(id) {
-    return this.request(`/users/${id}`, {
-      method: 'GET'
-    })
+    const response = await api.get(`/users/${id}`);
+    return response.data;
   }
-
-  /**
-   * Atualizar um funcionário (apenas gerente)
-   * @param {string} id - ID do funcionário
-   * @param {object} dados - {nome, email, cargo}
-   */
   static async updateFuncionario(id, dados) {
-    return this.request(`/users/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.patch(`/users/${id}`, dados);
+    return response.data;
   }
-
-  /**
-   * Deletar (desativar) um funcionário (apenas gerente)
-   * @param {string} id - ID do funcionário
-   */
   static async deleteFuncionario(id) {
-    return this.request(`/users/${id}`, {
-      method: 'DELETE'
-    })
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
   }
 
-  // ============ EMPRESAS ============
-
-  /**
-   * Criar empresa e usuário gerente
-   */
+  // --- EMPRESAS ---
   static async createEmpresa(dados) {
-    return this.request('/empresas/register', {
-      method: 'POST',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.post("/empresas/register", dados);
+    return response.data;
   }
-
-  /**
-   * Obter empresa
-   */
   static async getEmpresa(id) {
-    return this.request(`/empresas/${id}`, {
-      method: 'GET'
-    })
+    const response = await api.get(`/empresas/${id}`);
+    return response.data;
   }
-
-  /**
-   * Atualizar empresa
-   */
   static async updateEmpresa(id, dados) {
-    return this.request(`/empresas/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.patch(`/empresas/${id}`, dados);
+    return response.data;
   }
 
-  // ============ MESAS ============
-
-  /**
-   * Criar mesa
-   */
+  // --- MESAS ---
   static async createMesa(dados) {
-    return this.request('/mesas', {
-      method: 'POST',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.post("/mesas", dados);
+    return response.data;
   }
-
-  /**
-   * Obter todas as mesas
-   */
   static async getAllMesas() {
-    return this.request('/mesas', {
-      method: 'GET'
-    })
+    const response = await api.get("/mesas");
+    return response.data;
   }
-
-  /**
-   * Obter uma mesa específica
-   */
   static async getMesa(id) {
-    return this.request(`/mesas/${id}`, {
-      method: 'GET'
-    })
+    const response = await api.get(`/mesas/${id}`);
+    return response.data;
   }
-
-  /**
-   * Atualizar mesa
-   */
   static async updateMesa(id, dados) {
-    return this.request(`/mesas/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.patch(`/mesas/${id}`, dados);
+    return response.data;
   }
-
-  /**
-   * Deletar mesa
-   */
   static async deleteMesa(id) {
-    return this.request(`/mesas/${id}`, {
-      method: 'DELETE'
-    })
+    const response = await api.delete(`/mesas/${id}`);
+    return response.data;
   }
 
-  // ============ CHAMADOS ============
-
-  /**
-   * Criar chamado
-   */
+  // --- CHAMADOS ---
   static async createChamado(dados) {
-    return this.request('/chamados', {
-      method: 'POST',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.post("/chamados", dados);
+    return response.data;
   }
-
-  /**
-   * Obter todos os chamados
-   */
   static async getAllChamados() {
-    return this.request('/chamados', {
-      method: 'GET'
-    })
+    const response = await api.get("/chamados");
+    return response.data;
   }
-
-  /**
-   * Obter um chamado específico
-   */
   static async getChamado(id) {
-    return this.request(`/chamados/${id}`, {
-      method: 'GET'
-    })
+    const response = await api.get(`/chamados/${id}`);
+    return response.data;
   }
-
-  /**
-   * Atualizar chamado
-   */
   static async updateChamado(id, dados) {
-    return this.request(`/chamados/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.patch(`/chamados/${id}`, dados);
+    return response.data;
   }
-
-  /**
-   * Deletar chamado
-   */
   static async deleteChamado(id) {
-    return this.request(`/chamados/${id}`, {
-      method: 'DELETE'
-    })
+    const response = await api.delete(`/chamados/${id}`);
+    return response.data;
   }
 
-  // ============ CARDÁPIO ============
-
-  /**
-   * Criar item do cardápio
-   */
+  // --- CARDÁPIO ---
   static async createCardapio(dados) {
-    return this.request('/cardapios', {
-      method: 'POST',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.post("/cardapios", dados);
+    return response.data;
   }
-
-  /**
-   * Obter todos os itens do cardápio
-   */
   static async getAllCardapios() {
-    return this.request('/cardapios', {
-      method: 'GET'
-    })
+    const response = await api.get("/cardapios");
+    return response.data;
   }
-
-  /**
-   * Obter um item específico do cardápio
-   */
   static async getCardapio(id) {
-    return this.request(`/cardapios/${id}`, {
-      method: 'GET'
-    })
+    const response = await api.get(`/cardapios/${id}`);
+    return response.data;
   }
-
-  /**
-   * Atualizar item do cardápio
-   */
   static async updateCardapio(id, dados) {
-    return this.request(`/cardapios/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(dados)
-    })
+    const response = await api.patch(`/cardapios/${id}`, dados);
+    return response.data;
   }
-
-  /**
-   * Deletar item do cardápio
-   */
   static async deleteCardapio(id) {
-    return this.request(`/cardapios/${id}`, {
-      method: 'DELETE'
-    })
+    const response = await api.delete(`/cardapios/${id}`);
+    return response.data;
   }
-
   // ============ RELATÓRIOS ============
 
-  /**
-   * Obter KPIs de vendas (faturamento, ticket médio, intervalo de confiança)
-   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
-   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
-   */
   static async getKPIs(dataInicio = null, dataFim = null) {
-    const params = new URLSearchParams()
-    if (dataInicio) params.append('dataInicio', dataInicio)
-    if (dataFim) params.append('dataFim', dataFim)
-    
-    const queryString = params.toString()
-    return this.request(`/relatorios/kpis${queryString ? '?' + queryString : ''}`, {
-      method: 'GET'
-    })
+    const response = await api.get('/relatorios/kpis', { 
+      params: { dataInicio, dataFim } 
+    });
+    return response.data;
   }
 
-  /**
-   * Obter previsão de vendas com regressão linear
-   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
-   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
-   */
   static async getPrevisaoVendas(dataInicio = null, dataFim = null) {
-    const params = new URLSearchParams()
-    if (dataInicio) params.append('dataInicio', dataInicio)
-    if (dataFim) params.append('dataFim', dataFim)
-    
-    const queryString = params.toString()
-    return this.request(`/relatorios/previsao-vendas${queryString ? '?' + queryString : ''}`, {
-      method: 'GET'
-    })
+    const response = await api.get('/relatorios/previsao-vendas', {
+      params: { dataInicio, dataFim }
+    });
+    return response.data;
   }
 
-  /**
-   * Obter 5 itens mais vendidos
-   */
   static async getItensMaisVendidos() {
-    return this.request('/relatorios/itens-mais-vendidos', {
-      method: 'GET'
-    })
+    const response = await api.get('/relatorios/itens-mais-vendidos');
+    return response.data;
   }
 
-  /**
-   * Obter estatísticas de vendas (moda, mediana, assimetria)
-   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
-   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
-   */
   static async getEstatisticasVendas(dataInicio = null, dataFim = null) {
-    const params = new URLSearchParams()
-    if (dataInicio) params.append('dataInicio', dataInicio)
-    if (dataFim) params.append('dataFim', dataFim)
-    
-    const queryString = params.toString()
-    return this.request(`/relatorios/estatisticas-vendas${queryString ? '?' + queryString : ''}`, {
-      method: 'GET'
-    })
+    const response = await api.get('/relatorios/estatisticas-vendas', {
+      params: { dataInicio, dataFim }
+    });
+    return response.data;
   }
 
-  /**
-   * Obter distribuição de métodos de pagamento
-   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
-   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
-   */
   static async getMetodosPagamento(dataInicio = null, dataFim = null) {
-    const params = new URLSearchParams()
-    if (dataInicio) params.append('dataInicio', dataInicio)
-    if (dataFim) params.append('dataFim', dataFim)
-    
-    const queryString = params.toString()
-    return this.request(`/relatorios/metodos-pagamento${queryString ? '?' + queryString : ''}`, {
-      method: 'GET'
-    })
+    const response = await api.get('/relatorios/metodos-pagamento', {
+      params: { dataInicio, dataFim }
+    });
+    return response.data;
   }
 
-  // ============ DASHBOARD ============
-
-  /**
-   * Obter estatísticas gerais do dashboard
-   * @param {string} dataInicio - Data inicial (opcional) YYYY-MM-DD
-   * @param {string} dataFim - Data final (opcional) YYYY-MM-DD
-   */
+  // ============ DASHBOARD (MUDOU!) ============
+  
   static async getDashboardStats(dataInicio = null, dataFim = null) {
-    const params = new URLSearchParams()
-    if (dataInicio) params.append('dataInicio', dataInicio)
-    if (dataFim) params.append('dataFim', dataFim)
-    
-    const queryString = params.toString()
-    
-    // Buscar dados de múltiplos endpoints e consolidar
     const [kpis, itens, estatisticas] = await Promise.all([
-      this.getKPIs(dataInicio, dataFim).catch(() => null),
-      this.getItensMaisVendidos().catch(() => []),
-      this.getEstatisticasVendas(dataInicio, dataFim).catch(() => null)
-    ])
+      this.getKPIs(dataInicio, dataFim),
+      this.getItensMaisVendidos(),
+      this.getEstatisticasVendas(dataInicio, dataFim)
+    ]);
     
     return {
       kpis,
       topItems: itens,
       statistics: estatisticas
-    }
+    };
   }
 
-  /**
-   * Obter pedidos recentes
-   * @param {number} limit - Número de pedidos a retornar
-   */
   static async getRecentOrders(limit = 10) {
-    // Assumindo que existe um endpoint de pedidos
-    return this.request(`/pedidos?limit=${limit}`, {
-      method: 'GET'
-    }).catch(() => ({ pedidos: [] }))
+    const response = await api.get('/pedidos', { params: { limit } });
+    return response.data;
   }
 
-  /**
-   * Obter itens com baixo estoque
-   */
   static async getLowStockItems() {
-    // Buscar todos os itens do cardápio e filtrar os que têm estoque baixo
-    const response = await this.getAllCardapios().catch(() => ({ itens: [] }))
-    const itens = response.itens || response.cardapios || []
-    
-    // Filtrar itens com estoque baixo (se houver campo de estoque)
-    return itens.filter(item => item.estoque && item.estoque < 10)
+    const response = await this.getAllCardapios();
+    const itens = response.itens || response.cardapios || [];
+    return itens.filter(item => item.estoque && item.estoque < 10);
   }
 }
 
-export default ApiService
+export default ApiService;

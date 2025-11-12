@@ -3,7 +3,6 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 
-// Conectar ao banco de dados
 require('./db/conn')
 
 app.use(express.json());
@@ -11,7 +10,7 @@ app.use(express.json());
 app.use(
   cors({
     credentials: true,
-    origin: ["http://localhost:3000", "http://localhost:5173"], // CRA e Vite
+    origin: ["http://localhost:3000", "http://localhost:5173"],
   })
 );
 
@@ -24,7 +23,9 @@ const pedidosRoutes = require('./routes/pedidosRoutes')
 const contaRoutes = require('./routes/contaRoutes')
 const pagamentoRoutes = require('./routes/pagamentoRoutes')
 const relatorioRoutes = require('./routes/relatorioRoutes')
+const authRoutes = require('./routes/authRoutes'); 
 
+app.use('/auth', authRoutes); 
 app.use('/users', userRoutes)
 app.use('/empresas', empresaRoutes)
 app.use('/mesas', mesaRoutes)
@@ -36,6 +37,6 @@ app.use('/pagamentos', pagamentoRoutes)
 app.use('/relatorios', relatorioRoutes)
 
 app.listen(5000, () => {
-  console.log('🚀 Servidor rodando na porta 5000')
-  console.log('📡 API disponível em: http://localhost:5000')
+  console.log('Servidor rodando na porta 5000')
+  console.log('API disponível em: http://localhost:5000')
 })

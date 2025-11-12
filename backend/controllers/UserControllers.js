@@ -1,4 +1,5 @@
-const createUserToken = require("../helpers/createUserToken");
+const jwt = require('jsonwebtoken');
+const RefreshToken = require('../models/RefreshToken');
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const validation = {
@@ -41,7 +42,7 @@ module.exports = class UserController {
         .status(200)
         .json({ message: `Funcionário ${cargo} criado com sucesso` });
     } catch (err) {
-      console.error('Erro ao criar funcionário:', err);
+      console.error("Erro ao criar funcionário:", err);
       if (err.code === 11000) {
         return res.status(409).json({
           message: "Um funcionário com este e-mail já está cadastrado.",
@@ -78,15 +79,51 @@ module.exports = class UserController {
         return res.status(422).json({ message: "PIN inválido." });
       }
     }
-    await createUserToken(user, req, res);
+    try {
+      const secret = process.env.JWT_SECRET;
+      const accessToken = jwt.sign(
+        { id: user._id, cargo: user.cargo, empresa: user.empresa },
+        secret,
+        { expiresIn: "15m" }
+      );
+      const refreshToken = jwt.sign(
+        { id: user._id, cargo: user.cargo, empresa: user.empresa },
+        secret,
+        { expiresIn: "7d" }
+      );
+      await RefreshToken.findOneAndDelete({ user: user._id });
+
+      await RefreshToken.create({
+        user: user._id,
+        token: refreshToken,
+      });
+
+      res.status(200).json({
+        message: "Login bem-sucedido!",
+        accessToken,
+        refreshToken, 
+        user: {
+          id: user._id,
+          nome: user.nome,
+          cargo: user.cargo,
+          empresa: user.empresa,
+        },
+      });
+    } catch (err) {
+      console.error("Erro ao gerar tokens:", err);
+      return res
+        .status(500)
+        .json({ message: "Erro ao finalizar login.", error: err.message });
+    }
   }
   static async getAllFuncionarios(req, res) {
     const empresaId = req.user.empresa;
 
     try {
-      const funcionarios = await User.find({ empresa: empresaId, ativo: true }).select(
-        "-senha -pin"
-      );
+      const funcionarios = await User.find({
+        empresa: empresaId,
+        ativo: true,
+      }).select("-senha -pin");
       res.status(200).json({ funcionarios });
     } catch (err) {
       res.status(500).json({
@@ -100,7 +137,11 @@ module.exports = class UserController {
     const empresaId = req.user.empresa;
 
     try {
-      const funcionario = await User.findOne({ _id: id, empresa: empresaId, ativo: true });
+      const funcionario = await User.findOne({
+        _id: id,
+        empresa: empresaId,
+        ativo: true,
+      });
       if (!funcionario) {
         return res
           .status(404)
@@ -115,8 +156,8 @@ module.exports = class UserController {
     }
   }
   static async updateFuncionario(req, res) {
-    const id = req.params.id; 
-    const empresaId = req.user.empresa; 
+    const id = req.params.id;
+    const empresaId = req.user.empresa;
 
     const updateData = {};
     const camposPermitidos = ["nome", "email", "cargo"];
@@ -146,26 +187,20 @@ module.exports = class UserController {
           .json({ message: "Funcionário não encontrado nesta empresa." });
       }
 
-      res
-        .status(200)
-        .json({
-          message: "Funcionário atualizado com sucesso!",
-          funcionario: funcionarioAtualizado,
-        });
+      res.status(200).json({
+        message: "Funcionário atualizado com sucesso!",
+        funcionario: funcionarioAtualizado,
+      });
     } catch (error) {
       if (error.code === 11000) {
-        return res
-          .status(409)
-          .json({
-            message: "O e-mail informado já está em uso por outro funcionário.",
-          });
-      }
-      res
-        .status(500)
-        .json({
-          message: "Erro ao atualizar funcionário.",
-          error: error.message,
+        return res.status(409).json({
+          message: "O e-mail informado já está em uso por outro funcionário.",
         });
+      }
+      res.status(500).json({
+        message: "Erro ao atualizar funcionário.",
+        error: error.message,
+      });
     }
   }
   static async deleteFuncionario(req, res) {
