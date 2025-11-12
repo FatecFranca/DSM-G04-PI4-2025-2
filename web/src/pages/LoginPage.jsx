@@ -91,8 +91,26 @@ const LoginPage = ({ onNavigate }) => {
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-neutral-600">
-          
+        <div className="mt-6 space-y-3">
+          <div className="text-center text-sm text-neutral-600">
+            Não tem uma conta?{' '}
+            <button
+              onClick={() => onNavigate('register')}
+              className="text-primary-600 font-semibold hover:text-primary-700 hover:underline transition-colors"
+            >
+              Cadastre-se aqui
+            </button>
+          </div>
+
+          <button
+            onClick={() => onNavigate('home')}
+            className="w-full px-4 py-3 border border-neutral-300 text-neutral-700 font-medium rounded-lg hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Voltar para Home
+          </button>
         </div>
       </div>
     </div>

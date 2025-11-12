@@ -240,7 +240,7 @@ function App() {
               Pronto para transformar seu negócio?
             </h2>
             <p className="text-primary-100 text-lg mb-8 max-w-2xl mx-auto">
-              Junte-se a centenas de estabelecimentos que já estão otimizando suas operações com DrinkFlow
+              Junte-se a centenas de estabelecimentos que já estão otimizando suas operações com ClickServe
             </p>
             {!isAuthenticated ? (
               <>
