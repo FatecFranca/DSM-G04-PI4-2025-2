@@ -9,6 +9,7 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { contaAPI, type Conta } from "@/src/services/api";
+import { websocketService } from "@/src/services/websocket";
 import { router } from "expo-router";
 import OrderModal from "@/src/components/OrderModal";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,7 +30,39 @@ export default function TableDetailsScreen({
 
   useEffect(() => {
     carregarConta();
-  }, [mesaId]);
+
+    // Listener para nova conta via WebSocket
+    const handleNovaConta = (novaConta: Conta) => {
+      console.log("📡 Nova conta via WebSocket:", novaConta);
+      if (novaConta.mesa === mesaId) {
+        setConta(novaConta);
+      }
+    };
+
+    // Listener para atualização de conta via WebSocket
+    const handleContaAtualizada = (
+      contaAtualizada: Partial<Conta> & { _id: string }
+    ) => {
+      console.log("📡 Conta atualizada via WebSocket:", contaAtualizada);
+      // Atualiza a conta se for a mesma que está sendo exibida
+      setConta((prevConta) => {
+        if (prevConta && prevConta._id === contaAtualizada._id) {
+          return { ...prevConta, ...contaAtualizada };
+        }
+        return prevConta;
+      });
+    };
+
+    // Registrar listeners
+    websocketService.on("nova_conta", handleNovaConta);
+    websocketService.on("conta_atualizada", handleContaAtualizada);
+
+    // Cleanup: remover listeners quando componente desmontar
+    return () => {
+      websocketService.off("nova_conta", handleNovaConta);
+      websocketService.off("conta_atualizada", handleContaAtualizada);
+    };
+  }, [mesaId]); // Removido 'conta' das dependências para evitar loop infinito
 
   const carregarConta = async () => {
     try {

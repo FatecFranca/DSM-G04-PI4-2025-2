@@ -1,37 +1,38 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { Table, Call, TableStatus } from "../types";
 import TableMap from "../features/tables/TableMap";
 import { useTables } from "../features/tables/useTables";
+import { useChamadoStore } from "../stores/chamadoStore";
 import CallList from "../features/calls/CallList";
 import * as Haptics from "expo-haptics";
 import Header from "../components/Header";
 import ProfileModal from "../components/ProfileModal";
 import ActiveCall from "../components/ActiveCall";
 import OrderModal from "../components/OrderModal";
+import { chamadoAPI } from "../services/api";
 
 export default function MainScreen() {
+  console.log("🏠 MainScreen montado!");
+
   const [isProfileVisible, setIsProfileVisible] = useState(false);
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
 
-  // DADOS MOCKADOS - Para usar dados reais do backend:
-  // 1. Importe: import { mesaAPI } from '../services/api';
-  // 2. Use useEffect para buscar: const mesas = await mesaAPI.listar();
-  // 3. As mesas do backend terão o campo _id (ObjectId do MongoDB)
-  // 4. Adicione table_id ao activeCall quando integrar
+  // Buscar dados reais do backend
+  const {
+    tables: apiTables,
+    isLoading: loadingTables,
+    error: errorTables,
+  } = useTables();
 
-  // 📝 IMPORTANTE: Para testar criação de pedidos:
-  // 1. Crie uma mesa no MongoDB pelo backend
-  // 2. Copie o _id da mesa (ex: '507f1f77bcf86cd799439011')
-  // 3. Cole abaixo no campo table_id
+  // Usar store diretamente ao invés do hook
+  const chamados = useChamadoStore((state) => state.chamados);
+  const isLoading = useChamadoStore((state) => state.isLoading);
+  const error = useChamadoStore((state) => state.error);
 
-  const [activeCall, setActiveCall] = useState<Call | null>({
-    id: "2",
-    tableId: 3, // ID local para UI
-    table_id: "69114e3c23b718a4bc86fa62", // ✅ ID da mesa criada no MongoDB
-    timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-    status: "in-progress",
-  });
-  const { tables: apiTables, isLoading, error } = useTables();
+  console.log("📋 MainScreen - chamados atuais:", chamados.length);
+
   const [tables, setTables] = useState<Table[]>([]);
 
   useEffect(() => {
@@ -63,60 +64,25 @@ export default function MainScreen() {
         return "available";
     }
   };
-  const [calls, setCalls] = useState<Call[]>([
-    {
-      id: "1",
-      tableId: 2,
-      timestamp: new Date().toISOString(),
-      status: "pending",
-    },
-    {
-      id: "2",
-      tableId: 3,
-      timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-      status: "in-progress",
-    },
-  ]);
-  const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
 
-  // Simulação local de novos chamados (remova quando integrar com o WebSocket real)
-  useEffect(() => {
-    // Inicializa o offset do mapa se houver um chamado ativo
-    if (activeCall) {
-      //mapOffset.setValue(0);
-    }
-
-    const simulateNewCall = () => {
-      const availableTables = tables.filter((t) => t.status === "available");
-      if (availableTables.length > 0) {
-        const randomTable =
-          availableTables[Math.floor(Math.random() * availableTables.length)];
-        const newCall: Call = {
-          id: Date.now().toString(),
-          tableId: randomTable.id,
-          timestamp: new Date().toISOString(),
-          status: "pending",
-        };
-        handleNewCall(newCall);
-      }
-    };
-
-    // Simular um novo chamado a cada 30 segundos
-    const interval = setInterval(simulateNewCall, 30000);
-    return () => clearInterval(interval);
-  }, [tables, activeCall]);
-
-  const handleNewCall = (call: Call) => {
-    // Vibrar o dispositivo quando receber uma nova chamada
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    setCalls((prev) => [...prev, call]);
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === call.tableId ? { ...table, status: "called" } : table
-      )
-    );
-  };
+  // Converter chamados da API para o formato Call do UI usando useMemo
+  // Isso garante que sempre usa os dados mais recentes do WebSocket
+  const calls = useMemo(() => {
+    console.log("🔄 Convertendo chamados:", chamados.length);
+    return chamados.map((chamado) => {
+      const mesaInfo =
+        typeof chamado.mesa === "object"
+          ? chamado.mesa
+          : { _id: chamado.mesa, numero: 0 };
+      return {
+        id: chamado._id,
+        tableId: mesaInfo.numero,
+        table_id: mesaInfo._id,
+        timestamp: chamado.createdAt,
+        status: "pending" as Call["status"],
+      };
+    });
+  }, [chamados]); // Re-calcula sempre que chamados mudar
 
   const handleTableUpdate = (updatedTable: Table) => {
     setTables((prev) =>
@@ -124,7 +90,10 @@ export default function MainScreen() {
     );
   };
 
-  const handleCallStatusUpdate = (callId: string, status: Call["status"]) => {
+  const handleCallStatusUpdate = async (
+    callId: string,
+    status: Call["status"]
+  ) => {
     const updatedCall = calls.find((c) => c.id === callId);
     if (!updatedCall) return;
 
@@ -132,52 +101,32 @@ export default function MainScreen() {
     if (status === "in-progress" && activeCall) return;
 
     if (status === "in-progress") {
-      // Atualiza o timestamp para o momento em que o chamado foi aceito
-      const updatedCallWithTime = {
-        ...updatedCall,
-        timestamp: new Date().toISOString(),
-      };
-      setActiveCall(updatedCallWithTime);
+      try {
+        // Aceitar chamado no backend
+        await chamadoAPI.atender(callId);
+
+        // Atualiza o timestamp para o momento em que o chamado foi aceito
+        const updatedCallWithTime = {
+          ...updatedCall,
+          timestamp: new Date().toISOString(),
+          status: "in-progress" as Call["status"],
+        };
+        setActiveCall(updatedCallWithTime);
+
+        // Feedback tátil
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } catch (error) {
+        console.error("Erro ao aceitar chamado:", error);
+      }
     } else if (status === "completed") {
       setActiveCall(null);
+
+      // Feedback tátil
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-
-    setCalls((prev) =>
-      prev.map((call) =>
-        call.id === callId
-          ? {
-              ...call,
-              status,
-              timestamp:
-                status === "in-progress"
-                  ? new Date().toISOString()
-                  : call.timestamp,
-            }
-          : call
-      )
-    );
-
-    // Atualizar o status da mesa correspondente
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === updatedCall.tableId
-          ? {
-              ...table,
-              status: status === "completed" ? "available" : "in-service",
-            }
-          : table
-      )
-    );
-
-    // Feedback tátil ao atualizar status
-    Haptics.notificationAsync(
-      status === "completed"
-        ? Haptics.NotificationFeedbackType.Success
-        : Haptics.NotificationFeedbackType.Warning
-    );
   };
 
-  if (isLoading) {
+  if (loadingTables || isLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#000" />
@@ -185,10 +134,12 @@ export default function MainScreen() {
     );
   }
 
-  if (error) {
+  if (errorTables || error) {
     return (
       <View style={[styles.container, styles.errorContainer]}>
-        <Text style={styles.errorText}>Error loading tables: {error}</Text>
+        <Text style={styles.errorText}>
+          Erro ao carregar dados: {errorTables || error}
+        </Text>
       </View>
     );
   }

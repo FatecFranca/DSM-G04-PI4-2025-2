@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_CONFIG } from "../config/api.config";
 import { useUserStore } from "../stores/userStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const api = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -20,6 +21,91 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para lidar com refresh token em erros 401
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Se o erro for 401 e não for uma tentativa de refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Se já está fazendo refresh, adiciona à fila
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = useUserStore.getState().refreshToken;
+
+      if (!refreshToken) {
+        // Se não tem refresh token, faz logout
+        await useUserStore.getState().logout();
+        processQueue(error, null);
+        isRefreshing = false;
+        return Promise.reject(error);
+      }
+
+      try {
+        // Tenta renovar o token
+        const response = await axios.post(
+          `${API_CONFIG.BASE_URL}/auth/refresh`,
+          { token: refreshToken }
+        );
+
+        const { accessToken } = response.data;
+
+        // Atualiza o token no store e AsyncStorage
+        await AsyncStorage.setItem("@auth_token", accessToken);
+        useUserStore.getState().setToken(accessToken);
+
+        // Atualiza o header da requisição original
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+        // Processa a fila de requisições que falharam
+        processQueue(null, accessToken);
+
+        // Retenta a requisição original
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Se falhar ao renovar, faz logout
+        processQueue(refreshError, null);
+        await useUserStore.getState().logout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -225,6 +311,20 @@ export const userAPI = {
   // Faz login do usuário (email + credencial: senha ou PIN)
   login: async (email: string, credencial: string) => {
     const response = await api.post("/users/login", { email, credencial });
+    return response.data;
+  },
+
+  // Renova o access token usando o refresh token
+  refresh: async (refreshToken: string) => {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+      token: refreshToken,
+    });
+    return response.data;
+  },
+
+  // Faz logout do usuário
+  logout: async (refreshToken: string) => {
+    const response = await api.post("/auth/logout", { token: refreshToken });
     return response.data;
   },
 };

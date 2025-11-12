@@ -20,18 +20,34 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
   const router = useRouter();
   const user = useUserStore((state) => state.user);
   const logout = useUserStore((state) => state.logout);
+  const refreshToken = useUserStore((state) => state.refreshToken);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert("Sair", "Tem certeza que deseja sair?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Sair",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
           onClose(); // Fecha o modal primeiro
+
+          try {
+            // Tenta invalidar o refresh token no backend
+            if (refreshToken) {
+              const { userAPI } = await import("@/src/services/api");
+              await userAPI.logout(refreshToken);
+            }
+          } catch (error) {
+            console.error("Erro ao fazer logout no backend:", error);
+            // Continua com o logout local mesmo se falhar
+          }
+
+          // Faz o logout local
+          await logout();
+
+          // Redireciona para login
           setTimeout(() => {
-            logout(); // Faz o logout (agora é síncrono)
-            router.replace("/login"); // Redireciona
+            router.replace("/login");
           }, 100);
         },
       },

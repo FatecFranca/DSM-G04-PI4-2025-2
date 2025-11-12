@@ -1,6 +1,11 @@
 const Conta = require("../models/Conta");
 const Mesa = require("../models/Mesa");
 const ObjectId = require("mongoose").Types.ObjectId;
+const {
+  emitNovaConta,
+  emitAtualizacaoConta,
+  emitAtualizacaoMesa,
+} = require("../websocket");
 
 module.exports = class ContaController {
   static async abrirConta(req, res) {
@@ -35,6 +40,21 @@ module.exports = class ContaController {
       mesa.status = "ocupada";
       mesa.conta_ativa = novaConta._id;
       await mesa.save();
+
+      // Emitir eventos WebSocket
+      emitNovaConta(empresaId, {
+        _id: novaConta._id,
+        mesa: mesa._id,
+        status: novaConta.status,
+        valor_total: novaConta.valor_total,
+      });
+
+      emitAtualizacaoMesa(empresaId, {
+        _id: mesa._id,
+        numero: mesa.numero,
+        status: mesa.status,
+        conta_ativa: mesa.conta_ativa,
+      });
 
       res.status(201).json({
         message: `Conta aberta com sucesso para a Mesa ${mesa.numero}`,
@@ -82,7 +102,7 @@ module.exports = class ContaController {
   }
   static async listarContas(req, res) {
     const empresaId = req.user.empresa;
-    
+
     const { status, dataInicio, dataFim } = req.query;
 
     try {
@@ -114,7 +134,6 @@ module.exports = class ContaController {
       }
 
       res.status(200).json({ contas });
-
     } catch (error) {
       res
         .status(500)
@@ -144,13 +163,24 @@ module.exports = class ContaController {
       }
       if (conta.valor_total > 0) {
         return res.status(409).json({
-          message:
-            "Não é possível cancelar uma conta que já possui pedidos"
+          message: "Não é possível cancelar uma conta que já possui pedidos",
         });
       }
       conta.status = "cancelada";
       await conta.save();
       await Mesa.findByIdAndUpdate(conta.mesa, {
+        status: "livre",
+        conta_ativa: null,
+      });
+
+      // Emitir eventos WebSocket
+      emitAtualizacaoConta(conta.empresa, {
+        _id: conta._id,
+        status: conta.status,
+      });
+
+      emitAtualizacaoMesa(conta.empresa, {
+        _id: conta.mesa,
         status: "livre",
         conta_ativa: null,
       });

@@ -1,6 +1,12 @@
 const Chamado = require("../models/Chamado");
 const Mesa = require("../models/Mesa");
 const Conta = require("../models/Conta");
+const {
+  emitNovoChamado,
+  emitAtualizacaoChamado,
+  emitAtualizacaoMesa,
+  emitNovaConta,
+} = require("../websocket");
 
 module.exports = class ChamadoController {
   static async criarChamado(req, res) {
@@ -23,6 +29,13 @@ module.exports = class ChamadoController {
         const novaConta = new Conta({ mesa: mesa._id, empresa: mesa.empresa });
         await novaConta.save();
         mesa.conta_ativa = novaConta._id;
+
+        // Emitir evento de nova conta
+        emitNovaConta(mesa.empresa, {
+          _id: novaConta._id,
+          mesa: mesa._id,
+          status: novaConta.status,
+        });
       }
 
       const chamadoPendente = await Chamado.findOne({
@@ -44,6 +57,22 @@ module.exports = class ChamadoController {
 
       await novoChamado.save();
       await mesa.save();
+
+      // Emitir eventos WebSocket
+      emitNovoChamado(mesa.empresa, {
+        _id: novoChamado._id,
+        mesa: { _id: mesa._id, numero: mesa.numero },
+        status: novoChamado.status,
+        createdAt: novoChamado.createdAt,
+      });
+
+      emitAtualizacaoMesa(mesa.empresa, {
+        _id: mesa._id,
+        numero: mesa.numero,
+        status: mesa.status,
+        conta_ativa: mesa.conta_ativa,
+      });
+
       res.status(201).json({
         message: `Chamado criado para a Mesa ${mesa.numero}!`,
         chamado: novoChamado,
@@ -82,6 +111,18 @@ module.exports = class ChamadoController {
 
       await Mesa.findByIdAndUpdate(chamado.mesa, { status: "ocupada" });
 
+      // Emitir eventos WebSocket
+      emitAtualizacaoChamado(chamado.empresa, {
+        _id: chamado._id,
+        status: chamado.status,
+        garcom: chamado.garcom,
+      });
+
+      emitAtualizacaoMesa(chamado.empresa, {
+        _id: chamado.mesa,
+        status: "ocupada",
+      });
+
       res.status(200).json({ message: "Chamado aceito com sucesso!", chamado });
     } catch (error) {
       res
@@ -108,6 +149,12 @@ module.exports = class ChamadoController {
       chamado.status = "resolvido";
       await chamado.save();
 
+      // Emitir evento WebSocket
+      emitAtualizacaoChamado(chamado.empresa, {
+        _id: chamado._id,
+        status: chamado.status,
+      });
+
       res.status(200).json({ message: "Atendimento finalizado com sucesso." });
     } catch (error) {
       res
@@ -128,12 +175,10 @@ module.exports = class ChamadoController {
 
       res.status(200).json({ chamados: chamadosPendentes });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          message: "Erro ao buscar chamados pendentes.",
-          error: error.message,
-        });
+      res.status(500).json({
+        message: "Erro ao buscar chamados pendentes.",
+        error: error.message,
+      });
     }
   }
 };

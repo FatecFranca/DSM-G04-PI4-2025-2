@@ -31,14 +31,14 @@ export default function LoginPage() {
       // Chama o endpoint /users/login
       const data = await userAPI.login(email, credencial);
 
-      // data.token e data.user devem estar presentes conforme o backend
-      if (data && data.token && data.user) {
-        // Primeiro seta o token para configurar a API
-        useUserStore.getState().setToken(data.token);
-        // Depois seta o usuário
-        useUserStore.getState().setUser(data.user);
+      // data deve conter: accessToken, refreshToken e user
+      if (data && data.accessToken && data.refreshToken && data.user) {
+        // Usa setAuth para salvar tudo de uma vez
+        await useUserStore
+          .getState()
+          .setAuth(data.user, data.accessToken, data.refreshToken);
 
-        // Pequeno delay para garantir que o token foi setado
+        // Pequeno delay para garantir que foi salvo
         setTimeout(() => {
           router.replace("/");
         }, 100);

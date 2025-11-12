@@ -2,6 +2,11 @@ const Pagamento = require("../models/Pagamento");
 const Conta = require("../models/Conta");
 const Mesa = require("../models/Mesa");
 const ObjectId = require("mongoose").Types.ObjectId;
+const {
+  emitNovoPagamento,
+  emitAtualizacaoConta,
+  emitAtualizacaoMesa,
+} = require("../websocket");
 
 module.exports = class PagamentoController {
   static async adicionarPagamento(req, res) {
@@ -55,19 +60,39 @@ module.exports = class PagamentoController {
           status: "livre",
           conta_ativa: null,
         });
+
+        // Emitir eventos WebSocket quando a conta for fechada
+        emitAtualizacaoMesa(empresaId, {
+          _id: conta.mesa,
+          status: "livre",
+          conta_ativa: null,
+        });
       }
+
+      // Emitir eventos WebSocket
+      emitNovoPagamento(empresaId, {
+        _id: novoPagamento._id,
+        conta: contaId,
+        valor: novoPagamento.valor,
+        metodo: novoPagamento.metodo,
+      });
+
+      emitAtualizacaoConta(empresaId, {
+        _id: contaAtualizada._id,
+        valor_pago: contaAtualizada.valor_pago,
+        valor_total: contaAtualizada.valor_total,
+        status: contaAtualizada.status,
+      });
 
       res.status(201).json({
         message: "Pagamento registrado com sucesso!",
         conta: contaAtualizada,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          message: "Erro ao registrar pagamento.",
-          error: error.message,
-        });
+      res.status(500).json({
+        message: "Erro ao registrar pagamento.",
+        error: error.message,
+      });
     }
   }
 

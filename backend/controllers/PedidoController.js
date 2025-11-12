@@ -3,9 +3,9 @@ const Pedido = require("../models/Pedido");
 const Mesa = require("../models/Mesa");
 const Conta = require("../models/Conta");
 const ObjectId = require("mongoose").Types.ObjectId;
+const { emitNovoPedido, emitAtualizacaoPedido } = require("../websocket");
 
 module.exports = class PedidoController {
-
   static async criarPedido(req, res) {
     const mesaId = req.params.mesaId;
     const garcomId = req.user.id;
@@ -17,7 +17,9 @@ module.exports = class PedidoController {
     const { itens, observacoes_gerais } = req.body;
 
     if (!itens || itens.length === 0) {
-      return res.status(422).json({ message: "O pedido não pode estar vazio." });
+      return res
+        .status(422)
+        .json({ message: "O pedido não pode estar vazio." });
     }
 
     try {
@@ -72,12 +74,21 @@ module.exports = class PedidoController {
       await novoPedido.save();
 
       await Conta.findOneAndUpdate(
-        { mesa: mesaId, status: 'aberta' },
+        { mesa: mesaId, status: "aberta" },
         {
           $push: { pedidos: novoPedido._id },
           $inc: { valor_total: valorTotalDoPedido },
         }
       );
+
+      // Emitir evento WebSocket de novo pedido
+      emitNovoPedido(empresaId, {
+        _id: novoPedido._id,
+        mesa: mesaId,
+        status: novoPedido.status,
+        itens: novoPedido.itens,
+        observacoes_gerais: novoPedido.observacoes_gerais,
+      });
 
       res.status(201).json({
         message: "Pedido enviado para a cozinha!",
@@ -113,6 +124,13 @@ module.exports = class PedidoController {
       pedido.cozinheiro = cozinheiroId;
       await pedido.save();
 
+      // Emitir evento WebSocket de atualização
+      emitAtualizacaoPedido(empresaId, {
+        _id: pedido._id,
+        status: pedido.status,
+        cozinheiro: pedido.cozinheiro,
+      });
+
       res.status(200).json({ message: "Preparo iniciado!", pedido });
     } catch (error) {
       res
@@ -143,6 +161,14 @@ module.exports = class PedidoController {
 
       pedido.status = "pronto";
       await pedido.save();
+
+      // Emitir evento WebSocket de atualização
+      emitAtualizacaoPedido(pedido.empresa, {
+        _id: pedido._id,
+        status: pedido.status,
+        mesa: pedido.mesa,
+        garcom: pedido.garcom,
+      });
 
       res.status(200).json({ message: "Pedido pronto para entrega!", pedido });
     } catch (error) {
@@ -180,6 +206,12 @@ module.exports = class PedidoController {
 
       pedido.status = "entregue";
       await pedido.save();
+
+      // Emitir evento WebSocket de atualização
+      emitAtualizacaoPedido(pedido.empresa, {
+        _id: pedido._id,
+        status: pedido.status,
+      });
 
       res.status(200).json({ message: "Pedido entregue ao cliente!", pedido });
     } catch (error) {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { mesaAPI, Mesa } from "../../services/api";
+import { websocketService } from "../../services/websocket";
 
 export function useTables() {
   const [tables, setTables] = useState<Mesa[]>([]);
@@ -21,6 +22,28 @@ export function useTables() {
     }
 
     fetchTables();
+
+    // Listener para atualização de mesa via WebSocket
+    const handleMesaAtualizada = (
+      mesaAtualizada: Partial<Mesa> & { _id: string }
+    ) => {
+      console.log("📡 Mesa atualizada via WebSocket:", mesaAtualizada);
+      setTables((prevTables) =>
+        prevTables.map((mesa) =>
+          mesa._id === mesaAtualizada._id
+            ? { ...mesa, ...mesaAtualizada }
+            : mesa
+        )
+      );
+    };
+
+    // Registrar listener
+    websocketService.on("mesa_atualizada", handleMesaAtualizada);
+
+    // Cleanup: remover listener quando componente desmontar
+    return () => {
+      websocketService.off("mesa_atualizada", handleMesaAtualizada);
+    };
   }, []);
 
   return { tables, isLoading, error };

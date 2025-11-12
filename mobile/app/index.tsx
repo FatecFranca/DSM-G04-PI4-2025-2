@@ -20,10 +20,14 @@ import { Ionicons } from "@expo/vector-icons";
 import ChamadosModal from "@/src/components/ChamadosModal";
 import Header from "@/src/components/Header";
 import ProfileModal from "@/src/components/ProfileModal";
+import { useChamadoStore } from "@/src/stores/chamadoStore";
+import { useMesaStore } from "@/src/stores/mesaStore";
 
 export default function Index() {
-  const [mesas, setMesas] = useState<Mesa[]>([]);
-  const [chamados, setChamados] = useState<Chamado[]>([]);
+  // Usar stores globais
+  const mesas = useMesaStore((state) => state.mesas);
+  const chamados = useChamadoStore((state) => state.chamados);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
@@ -32,44 +36,31 @@ export default function Index() {
     [key: string]: boolean;
   }>({});
 
-  const carregarChamados = useCallback(async () => {
-    try {
-      const novos_chamados = await chamadoAPI.listar();
-      console.log("Chamados carregados:", novos_chamados);
-      setChamados(novos_chamados);
-    } catch (error) {
-      console.error("Erro ao carregar chamados:", error);
+  useEffect(() => {
+    // Só carrega se o store estiver vazio (primeira vez)
+    if (mesas.length === 0) {
+      carregarMesas();
+    } else {
+      setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    carregarMesas();
-    carregarChamados();
-  }, [carregarChamados]);
-
-  // Recarrega os chamados a cada 30 segundos
-  useEffect(() => {
-    const interval = setInterval(carregarChamados, 30000);
-    return () => clearInterval(interval);
-  }, [carregarChamados]);
 
   async function carregarMesas() {
     try {
       setLoading(true);
-      setError(null); // Limpa erros anteriores
+      setError(null);
 
-      const mesas = await mesaAPI.listar();
-      console.log("Mesas carregadas:", mesas);
+      const mesasData = await mesaAPI.listar();
 
-      if (mesas.length === 0) {
-        setMesas([]);
+      if (mesasData.length === 0) {
+        useMesaStore.getState().setMesas([]);
         setError("Nenhuma mesa cadastrada");
         return;
       }
 
       // Ordena as mesas por número
-      const mesasOrdenadas = [...mesas].sort((a, b) => a.numero - b.numero);
-      setMesas(mesasOrdenadas);
+      const mesasOrdenadas = [...mesasData].sort((a, b) => a.numero - b.numero);
+      useMesaStore.getState().setMesas(mesasOrdenadas);
     } catch (error) {
       console.error("Erro ao carregar mesas:", error);
       const mensagem =
@@ -78,7 +69,7 @@ export default function Index() {
           : "Erro ao carregar as mesas. Tente novamente.";
 
       setError(mensagem);
-      setMesas([]);
+      useMesaStore.getState().setMesas([]);
     } finally {
       setLoading(false);
     }
@@ -146,8 +137,8 @@ export default function Index() {
   const handleAtenderChamado = async (chamadoId: string) => {
     try {
       await chamadoAPI.atender(chamadoId);
-      // Atualiza tanto os chamados quanto as mesas
-      await Promise.all([carregarChamados(), carregarMesas()]);
+      // Atualiza apenas as mesas - chamados são atualizados via WebSocket
+      await carregarMesas();
       setIsChamadosVisible(false);
     } catch (error) {
       console.error("Erro ao atender chamado:", error);

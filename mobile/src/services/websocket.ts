@@ -1,47 +1,89 @@
-import { Table, Call } from '../types';
+import { io, Socket } from "socket.io-client";
+import { API_CONFIG } from "../config/api.config";
 
-class WebSocketService {
-  private ws: WebSocket | null = null;
-  private listeners: ((data: any) => void)[] = [];
+let socket: Socket | null = null;
+let pendingListeners: { event: string; callback: (data: any) => void }[] = [];
 
-  connect(url: string) {
-    this.ws = new WebSocket(url);
-
-    this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.notifyListeners(data);
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    this.ws.onclose = () => {
-      console.log('WebSocket connection closed');
-      // Implement reconnection logic here
-      setTimeout(() => this.connect(url), 5000);
-    };
-  }
-
-  addListener(listener: (data: any) => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  private notifyListeners(data: any) {
-    this.listeners.forEach(listener => listener(data));
-  }
-
-  updateCallStatus(callId: string, status: Call['status']) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'UPDATE_CALL',
-        payload: { callId, status }
-      }));
-    }
-  }
+export interface WebSocketService {
+  connect: (token: string) => void;
+  disconnect: () => void;
+  isConnected: () => boolean;
+  on: (event: string, callback: (data: any) => void) => void;
+  off: (event: string, callback?: (data: any) => void) => void;
 }
 
-export const wsService = new WebSocketService();
+export const websocketService: WebSocketService = {
+  connect: (token: string) => {
+    if (socket?.connected) {
+      return;
+    }
+
+    socket = io(API_CONFIG.BASE_URL, {
+      auth: {
+        token,
+      },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+    });
+
+    socket.on("connect", () => {
+      // Registrar listeners pendentes
+      if (pendingListeners.length > 0) {
+        pendingListeners.forEach(({ event, callback }) => {
+          socket?.on(event, callback);
+        });
+      }
+    });
+
+    socket.on("connected", (data) => {
+      // Silencioso - conexão estabelecida
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("❌ WebSocket desconectado:", reason);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("⚠️ Erro de conexão WebSocket:", error.message);
+    });
+
+    socket.on("error", (error) => {
+      console.error("⚠️ Erro WebSocket:", error);
+    });
+  },
+
+  disconnect: () => {
+    if (socket) {
+      socket.disconnect();
+      socket = null;
+      pendingListeners = [];
+    }
+  },
+
+  isConnected: () => {
+    return socket?.connected ?? false;
+  },
+
+  on: (event: string, callback: (data: any) => void) => {
+    if (!socket || !socket.connected) {
+      pendingListeners.push({ event, callback });
+      return;
+    }
+
+    socket.on(event, callback);
+  },
+
+  off: (event: string, callback?: (data: any) => void) => {
+    if (!socket) return;
+    if (callback) {
+      socket.off(event, callback);
+    } else {
+      socket.off(event);
+    }
+  },
+};
+
+export default websocketService;
