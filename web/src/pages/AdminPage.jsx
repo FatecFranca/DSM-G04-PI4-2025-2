@@ -66,7 +66,7 @@ const AdminPage = ({ onBackToHome }) => {
       // Tentar carregar dados da empresa
       if (user?.empresa) {
         try {
-          const empresaData = await ApiService.getEmpresa(user.empresa);
+          const empresaData = await ApiService.getEmpresa();
           setEmpresa(empresaData.empresa);
         } catch (err) {
           console.log("Erro ao carregar empresa:", err);
@@ -217,7 +217,8 @@ const AdminPage = ({ onBackToHome }) => {
       alert("Mesa cadastrada com sucesso!");
     } catch (err) {
       console.error("Erro ao criar mesa:", err);
-      setError(err.message || "Erro ao cadastrar mesa");
+      const errorMessage = err.response?.data?.message || err.message || "Erro ao cadastrar mesa";
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }

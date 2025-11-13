@@ -124,12 +124,12 @@ class ApiService {
     const response = await api.post("/empresas/register", dados);
     return response.data;
   }
-  static async getEmpresa(id) {
-    const response = await api.get(`/empresas/${id}`);
+  static async getEmpresa() {
+    const response = await api.get(`/empresas/me`);
     return response.data;
   }
-  static async updateEmpresa(id, dados) {
-    const response = await api.patch(`/empresas/${id}`, dados);
+  static async updateEmpresa(dados) {
+    const response = await api.patch(`/empresas/me`, dados);
     return response.data;
   }
 
@@ -161,7 +161,7 @@ class ApiService {
     return response.data;
   }
   static async getAllChamados() {
-    const response = await api.get("/chamados");
+    const response = await api.get("/chamados/pendentes");
     return response.data;
   }
   static async getChamado(id) {

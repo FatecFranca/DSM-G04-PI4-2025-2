@@ -13,8 +13,6 @@ import OrderModal from "../components/OrderModal";
 import { chamadoAPI } from "../services/api";
 
 export default function MainScreen() {
-  console.log("🏠 MainScreen montado!");
-
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
@@ -31,7 +29,6 @@ export default function MainScreen() {
   const isLoading = useChamadoStore((state) => state.isLoading);
   const error = useChamadoStore((state) => state.error);
 
-  console.log("📋 MainScreen - chamados atuais:", chamados.length);
 
   const [tables, setTables] = useState<Table[]>([]);
 
@@ -65,8 +62,6 @@ export default function MainScreen() {
     }
   };
 
-  // Converter chamados da API para o formato Call do UI usando useMemo
-  // Isso garante que sempre usa os dados mais recentes do WebSocket
   const calls = useMemo(() => {
     console.log("🔄 Convertendo chamados:", chamados.length);
     return chamados.map((chamado) => {
