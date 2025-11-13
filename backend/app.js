@@ -50,6 +50,5 @@ initializeWebSocket(server);
 
 server.listen(5000, () => {
   console.log("🚀 Servidor rodando na porta 5000");
-  console.log("📡 API REST disponível em: http://localhost:5000");
-  console.log("⚡ WebSocket disponível em: ws://localhost:5000");
+  
 });

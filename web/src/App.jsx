@@ -3,7 +3,6 @@ import { RegisterForm, NavBar } from './components'
 import Dashboard from './pages/Dashboard'
 import AdminPage from './pages/AdminPage'
 import LoginPage from './pages/LoginPage'
-import FuncionariosPage from './pages/FuncionariosPage'
 import SolutionsPage from './pages/SolutionsPage'
 import { useAuth } from './contexts/AuthContext'
 
@@ -22,13 +21,13 @@ function App() {
   useEffect(() => {
     // Redirecionar para home se tentar acessar páginas protegidas sem autenticação
     if (!isAuthenticated) {
-      if (currentPage === 'admin' || currentPage === 'funcionarios' || currentPage === 'dashboard') {
+      if (currentPage === 'admin' || currentPage === 'dashboard') {
         setCurrentPage('home')
       }
     }
     // Redirecionar para home se tentar acessar páginas de gerente sem ser gerente
     else if (!isGerente) {
-      if (currentPage === 'admin' || currentPage === 'funcionarios') {
+      if (currentPage === 'admin') {
         setCurrentPage('home')
       }
     }
@@ -42,18 +41,6 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
         <AdminPage onBackToHome={() => setCurrentPage('home')} />
-      </div>
-    )
-  }
-
-  if (currentPage === 'funcionarios') {
-    if (!isAuthenticated || !isGerente) {
-      return null
-    }
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
-        <FuncionariosPage />
       </div>
     )
   }

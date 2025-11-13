@@ -3,6 +3,13 @@ const router = express.Router();
 const PedidoController = require('../controllers/PedidoController');
 const isAuthenticated = require('../helpers/isAuthenticated');
 const checkRole = require('../helpers/checkRole');
+
+router.get('/', 
+    isAuthenticated, 
+    checkRole(['gerente']), 
+    PedidoController.listarPedidos
+);
+
 router.post('/mesa/:mesaId', 
     isAuthenticated, 
     checkRole(['garcom', 'gerente']), 

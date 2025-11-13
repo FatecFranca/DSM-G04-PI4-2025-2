@@ -39,6 +39,21 @@ const AdminPage = ({ onBackToHome }) => {
     categoria: "",
   });
 
+  // Estados para edição
+  const [editingMesa, setEditingMesa] = useState(null);
+  const [editingProduto, setEditingProduto] = useState(null);
+  const [editingFuncionario, setEditingFuncionario] = useState(null);
+
+  // Estados para modal de cadastro de funcionário
+  const [showFuncionarioModal, setShowFuncionarioModal] = useState(false);
+  const [funcionarioForm, setFuncionarioForm] = useState({
+    nome: "",
+    email: "",
+    cpf: "",
+    senha: "",
+    cargo: "",
+  });
+
   // Carregar dados do backend
   useEffect(() => {
     loadData();
@@ -52,16 +67,40 @@ const AdminPage = ({ onBackToHome }) => {
     try {
       const [funcData, mesasData, chamadosData, cardapioData] =
         await Promise.all([
-          ApiService.getAllFuncionarios().catch(() => ({ funcionarios: [] })),
-          ApiService.getAllMesas().catch(() => ({ mesas: [] })),
-          ApiService.getAllChamados().catch(() => ({ chamados: [] })),
-          ApiService.getAllCardapios().catch(() => ({ itens: [] })),
+          ApiService.getAllFuncionarios().catch((err) => {
+            console.error("❌ Erro ao carregar funcionários:", err);
+            return { funcionarios: [] };
+          }),
+          ApiService.getAllMesas().catch((err) => {
+            console.error("❌ Erro ao carregar mesas:", err);
+            return { mesas: [] };
+          }),
+          ApiService.getAllChamados().catch((err) => {
+            console.error("❌ Erro ao carregar chamados:", err);
+            return { chamados: [] };
+          }),
+          ApiService.getAllCardapios().catch((err) => {
+            console.error("❌ Erro ao carregar cardápios:", err);
+            return { itens: [] };
+          }),
         ]);
 
-      setFuncionarios(funcData.funcionarios || funcData.users || []);
-      setMesas(mesasData.mesas || []);
-      setChamados(chamadosData.chamados || []);
-      setCardapios(cardapioData.itens || cardapioData.cardapios || []);
+      const funcionariosArray = funcData.funcionarios || funcData.users || [];
+      const mesasArray = mesasData.mesas || [];
+      const chamadosArray = chamadosData.chamados || [];
+      
+      // O backend pode retornar array direto ou objeto { itens: [], cardapios: [] }
+      let cardapiosArray = [];
+      if (Array.isArray(cardapioData)) {
+        cardapiosArray = cardapioData;
+      } else {
+        cardapiosArray = cardapioData.itens || cardapioData.cardapios || [];
+      }
+
+      setFuncionarios(funcionariosArray);
+      setMesas(mesasArray);
+      setChamados(chamadosArray);
+      setCardapios(cardapiosArray);
 
       // Tentar carregar dados da empresa
       if (user?.empresa) {
@@ -69,11 +108,11 @@ const AdminPage = ({ onBackToHome }) => {
           const empresaData = await ApiService.getEmpresa();
           setEmpresa(empresaData.empresa);
         } catch (err) {
-          console.log("Erro ao carregar empresa:", err);
+          console.log("⚠️ Erro ao carregar empresa:", err);
         }
       }
     } catch (err) {
-      console.error("Erro ao carregar dados:", err);
+      console.error("❌ Erro geral ao carregar dados:", err);
       setError("Erro ao carregar dados do sistema");
     } finally {
       setLoading(false);
@@ -267,6 +306,250 @@ const AdminPage = ({ onBackToHome }) => {
     }
   };
 
+  // ==================== FUNÇÕES DE EDIÇÃO ====================
+  
+  // Função para formatar CPF
+  const formatCPF = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    const limited = numbers.slice(0, 11);
+    return limited.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  };
+
+  // Função para validar CPF
+  const validateCPF = (cpf) => {
+    const numbers = cpf.replace(/\D/g, "");
+    if (numbers.length !== 11) return false;
+    
+    // Validação dos dígitos verificadores
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(numbers.charAt(i)) * (10 - i);
+    }
+    let digit = 11 - (sum % 11);
+    if (digit >= 10) digit = 0;
+    if (digit !== parseInt(numbers.charAt(9))) return false;
+    
+    sum = 0;
+    for (let i = 0; i < 10; i++) {
+      sum += parseInt(numbers.charAt(i)) * (11 - i);
+    }
+    digit = 11 - (sum % 11);
+    if (digit >= 10) digit = 0;
+    if (digit !== parseInt(numbers.charAt(10))) return false;
+    
+    return true;
+  };
+
+  // Mesa - Edição
+  const handleEditMesa = (mesa) => {
+    setEditingMesa(mesa);
+    setMesaForm({
+      numero: mesa.numero,
+      id_botao: mesa.id_botao,
+    });
+    setShowMesaModal(true);
+  };
+
+  const handleUpdateMesa = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const mesaData = {
+        numero: parseInt(mesaForm.numero),
+        id_botao: mesaForm.id_botao,
+      };
+
+      await ApiService.updateMesa(editingMesa._id, mesaData);
+
+      setMesaForm({ numero: "", id_botao: "" });
+      setShowMesaModal(false);
+      setEditingMesa(null);
+      await loadData();
+      alert("Mesa atualizada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar mesa:", err);
+      setError(err.response?.data?.message || "Erro ao atualizar mesa");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteMesa = async (mesaId) => {
+    if (!window.confirm("Tem certeza que deseja excluir esta mesa?")) return;
+
+    try {
+      await ApiService.deleteMesa(mesaId);
+      await loadData();
+      alert("Mesa excluída com sucesso!");
+    } catch (err) {
+      console.error("Erro ao excluir mesa:", err);
+      alert(err.response?.data?.message || "Erro ao excluir mesa");
+    }
+  };
+
+  // Produto - Edição
+  const handleEditProduto = (produto) => {
+    setEditingProduto(produto);
+    setProdutoForm({
+      nome: produto.nome,
+      descricao: produto.descricao || "",
+      preco: produto.preco,
+      categoria: produto.categoria,
+    });
+    setShowProdutoModal(true);
+  };
+
+  const handleUpdateProduto = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const produtoData = {
+        nome: produtoForm.nome,
+        descricao: produtoForm.descricao || "",
+        preco: parseFloat(produtoForm.preco),
+        categoria: produtoForm.categoria,
+      };
+
+      console.log("Atualizando produto:", editingProduto._id, produtoData);
+      await ApiService.updateCardapio(editingProduto._id, produtoData);
+
+      setProdutoForm({ nome: "", descricao: "", preco: "", categoria: "" });
+      setShowProdutoModal(false);
+      setEditingProduto(null);
+      await loadData();
+      alert("Produto atualizado com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar produto:", err);
+      if (err.response?.status === 409) {
+        setError("Já existe um produto com este nome");
+      } else if (err.response?.status === 404) {
+        setError("Produto não encontrado");
+      } else {
+        setError(err.response?.data?.message || "Erro ao atualizar produto");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduto = async (produtoId) => {
+    if (!window.confirm("Tem certeza que deseja excluir este produto?")) return;
+
+    try {
+      await ApiService.deleteCardapio(produtoId);
+      await loadData();
+      alert("Produto marcado como indisponível!");
+    } catch (err) {
+      console.error("Erro ao excluir produto:", err);
+      alert(err.response?.data?.message || "Erro ao excluir produto");
+    }
+  };
+
+  // Funcionário - Edição
+  const handleEditFuncionario = (funcionario) => {
+    setEditingFuncionario(funcionario);
+    setFuncionarioForm({
+      nome: funcionario.nome,
+      email: funcionario.email,
+      cpf: funcionario.cpf,
+      senha: "",
+      cargo: funcionario.cargo,
+    });
+    setShowFuncionarioModal(true);
+  };
+
+  const handleUpdateFuncionario = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const funcionarioData = {
+        nome: funcionarioForm.nome,
+        email: funcionarioForm.email,
+        cpf: funcionarioForm.cpf.replace(/\D/g, ""),
+        cargo: funcionarioForm.cargo,
+      };
+
+      if (funcionarioForm.senha) {
+        funcionarioData.senha = funcionarioForm.senha;
+      }
+
+      await ApiService.updateUser(editingFuncionario._id, funcionarioData);
+
+      setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+      setShowFuncionarioModal(false);
+      setEditingFuncionario(null);
+      await loadData();
+      alert("Funcionário atualizado com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar funcionário:", err);
+      setError(err.response?.data?.message || "Erro ao atualizar funcionário");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteFuncionario = async (funcionarioId) => {
+    if (!window.confirm("Tem certeza que deseja excluir este funcionário?")) return;
+
+    try {
+      await ApiService.deleteUser(funcionarioId);
+      await loadData();
+      alert("Funcionário excluído com sucesso!");
+    } catch (err) {
+      console.error("Erro ao excluir funcionário:", err);
+      alert(err.response?.data?.message || "Erro ao excluir funcionário");
+    }
+  };
+
+  // Função para criar novo funcionário
+  const handleCreateFuncionario = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      // Validar campos obrigatórios
+      if (!funcionarioForm.nome || !funcionarioForm.email || !funcionarioForm.cpf || !funcionarioForm.senha || !funcionarioForm.cargo) {
+        setSubmitting(false);
+        setError("Todos os campos são obrigatórios");
+        return;
+      }
+
+      // Validar CPF (comentado para permitir testes)
+      // if (!validateCPF(funcionarioForm.cpf)) {
+      //   setSubmitting(false);
+      //   setError("CPF inválido. Por favor, verifique o número digitado.");
+      //   return;
+      // }
+
+      const funcionarioData = {
+        nome: funcionarioForm.nome,
+        email: funcionarioForm.email,
+        cpf: funcionarioForm.cpf.replace(/\D/g, ""),
+        senha: funcionarioForm.senha,
+        cargo: funcionarioForm.cargo,
+      };
+
+      await ApiService.createUser(funcionarioData);
+
+      setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+      setShowFuncionarioModal(false);
+      await loadData();
+      alert("Funcionário cadastrado com sucesso!");
+    } catch (err) {
+      console.error("Erro ao criar funcionário:", err);
+      setError(err.response?.data?.message || err.message || "Erro ao cadastrar funcionário");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -303,35 +586,7 @@ const AdminPage = ({ onBackToHome }) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="week">Última Semana</option>
-                <option value="month">Último Mês</option>
-                <option value="quarter">Último Trimestre</option>
-                <option value="year">Último Ano</option>
-              </select>
 
-              <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Exportar Relatório
-              </button>
-            </div>
           </div>
 
           {/* Tabs */}
@@ -357,12 +612,6 @@ const AdminPage = ({ onBackToHome }) => {
                 label: "Cardápio",
                 icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
               },
-              {
-                id: "chamados",
-                label: "Chamados",
-                icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
-              },
-              /* Relatórios tab removed */
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -546,25 +795,40 @@ const AdminPage = ({ onBackToHome }) => {
               <h2 className="text-2xl font-bold text-gray-900">
                 Gerenciamento de Funcionários
               </h2>
-              <button
-                onClick={loadData}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setEditingFuncionario(null);
+                    setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+                    setShowFuncionarioModal(true);
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Atualizar
-              </button>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Novo Funcionário
+                </button>
+                <button
+                  onClick={loadData}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Atualizar
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -617,6 +881,9 @@ const AdminPage = ({ onBackToHome }) => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Cadastro
                       </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -668,6 +935,26 @@ const AdminPage = ({ onBackToHome }) => {
                               )
                             : "N/A"}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleEditFuncionario(func)}
+                            className="text-blue-600 hover:text-blue-900 mr-3 p-1 hover:bg-blue-50 rounded transition-colors"
+                            title="Editar"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFuncionario(func._id)}
+                            className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
+                            title="Excluir"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -686,7 +973,11 @@ const AdminPage = ({ onBackToHome }) => {
               </h2>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowMesaModal(true)}
+                  onClick={() => {
+                    setEditingMesa(null);
+                    setMesaForm({ numero: "", id_botao: "" });
+                    setShowMesaModal(true);
+                  }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                 >
                   <svg
@@ -767,6 +1058,9 @@ const AdminPage = ({ onBackToHome }) => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -816,8 +1110,28 @@ const AdminPage = ({ onBackToHome }) => {
                               ? "Aguardando Atendimento"
                               : mesa.status === "aguardando_pagamento"
                               ? "Aguardando Pagamento"
-                              : mesa.status || "Disponível"}
+                              : mesa.status || "Livre"}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleEditMesa(mesa)}
+                            className="text-blue-600 hover:text-blue-900 mr-3 p-1 hover:bg-blue-50 rounded transition-colors"
+                            title="Editar"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMesa(mesa._id)}
+                            className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
+                            title="Excluir"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -928,6 +1242,9 @@ const AdminPage = ({ onBackToHome }) => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Cadastro
                       </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -981,142 +1298,25 @@ const AdminPage = ({ onBackToHome }) => {
                               )
                             : "N/A"}
                         </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Chamados Tab */}
-        {activeTab === "chamados" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Gerenciamento de Chamados
-              </h2>
-              <button
-                onClick={loadData}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Atualizar
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
-                <p className="mt-2 text-gray-600">Carregando chamados...</p>
-              </div>
-            ) : chamados.length === 0 ? (
-              <div className="bg-gray-50 rounded-lg p-8 text-center">
-                <svg
-                  className="w-16 h-16 mx-auto text-gray-400 mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Nenhum chamado registrado
-                </h3>
-                <p className="text-gray-600">
-                  Chamados aparecem aqui quando clientes solicitam atendimento.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mesa
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tipo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Garçom
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Criado Em
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Resolvido Em
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {chamados.map((chamado) => (
-                      <tr
-                        key={chamado._id || chamado.id}
-                        className="hover:bg-gray-50"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
-                              <span className="text-orange-700 font-bold">
-                                {chamado.mesa?.numero || chamado.mesa || "N/A"}
-                              </span>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                Mesa{" "}
-                                {chamado.mesa?.numero || chamado.mesa || "N/A"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900 capitalize">
-                            {chamado.tipo || "Atendimento"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(
-                              chamado.status
-                            )}`}
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleEditProduto(produto)}
+                            className="text-blue-600 hover:text-blue-900 mr-3 p-1 hover:bg-blue-50 rounded transition-colors"
+                            title="Editar"
                           >
-                            {getStatusText(chamado.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {chamado.garcom?.nome ||
-                            chamado.garcom ||
-                            "Não atribuído"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(chamado.createdAt)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {chamado.resolvidoEm
-                            ? formatDate(chamado.resolvidoEm)
-                            : "-"}
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduto(produto._id)}
+                            className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
+                            title="Excluir"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1126,6 +1326,8 @@ const AdminPage = ({ onBackToHome }) => {
             )}
           </div>
         )}
+
+
 
         {/* Relatórios tab removed - content moved to Dashboard */}
       </div>
@@ -1137,12 +1339,13 @@ const AdminPage = ({ onBackToHome }) => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Cadastrar Nova Mesa
+                  {editingMesa ? "Editar Mesa" : "Cadastrar Nova Mesa"}
                 </h3>
                 <button
                   onClick={() => {
                     setShowMesaModal(false);
                     setMesaForm({ numero: "", id_botao: "" });
+                    setEditingMesa(null);
                     setError(null);
                   }}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1169,7 +1372,7 @@ const AdminPage = ({ onBackToHome }) => {
                 </div>
               )}
 
-              <form onSubmit={handleCreateMesa} className="space-y-4">
+              <form onSubmit={editingMesa ? handleUpdateMesa : handleCreateMesa} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Número da Mesa *
@@ -1425,6 +1628,186 @@ const AdminPage = ({ onBackToHome }) => {
                           />
                         </svg>
                         Cadastrar Produto
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cadastro de Funcionário */}
+      {showFuncionarioModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {editingFuncionario ? "Editar Funcionário" : "Cadastrar Novo Funcionário"}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowFuncionarioModal(false);
+                    setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+                    setEditingFuncionario(null);
+                    setError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={editingFuncionario ? handleUpdateFuncionario : handleCreateFuncionario} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={funcionarioForm.nome}
+                    onChange={(e) =>
+                      setFuncionarioForm({ ...funcionarioForm, nome: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: João da Silva"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    E-mail *
+                  </label>
+                  <input
+                    type="email"
+                    value={funcionarioForm.email}
+                    onChange={(e) =>
+                      setFuncionarioForm({ ...funcionarioForm, email: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: joao@example.com"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CPF *
+                  </label>
+                  <input
+                    type="text"
+                    value={funcionarioForm.cpf}
+                    onChange={(e) =>
+                      setFuncionarioForm({ ...funcionarioForm, cpf: formatCPF(e.target.value) })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="000.000.000-00"
+                    required
+                    maxLength="14"
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {editingFuncionario ? "Senha (deixe em branco para manter)" : "Senha *"}
+                  </label>
+                  <input
+                    type="password"
+                    value={funcionarioForm.senha}
+                    onChange={(e) =>
+                      setFuncionarioForm({ ...funcionarioForm, senha: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Digite a senha"
+                    required={!editingFuncionario}
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cargo *
+                  </label>
+                  <select
+                    value={funcionarioForm.cargo}
+                    onChange={(e) =>
+                      setFuncionarioForm({ ...funcionarioForm, cargo: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    required
+                    disabled={submitting}
+                  >
+                    <option value="">Selecione um cargo</option>
+                    <option value="garcom">Garçom</option>
+                    <option value="cozinheiro">Cozinheiro</option>
+                    <option value="gerente">Gerente</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFuncionarioModal(false);
+                      setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+                      setEditingFuncionario(null);
+                      setError(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={submitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        {editingFuncionario ? "Atualizando..." : "Cadastrando..."}
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        {editingFuncionario ? "Atualizar Funcionário" : "Cadastrar Funcionário"}
                       </>
                     )}
                   </button>

@@ -83,14 +83,9 @@ const NavBar = ({ onNavigate }) => {
                   </span>
                 </div>
                 {isGerente && (
-                  <>
-                    <Button variant="ghost" size="sm" onClick={() => handleMenuClick('admin')}>
-                       Admin
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleMenuClick('funcionarios')}>
-                       Funcionários
-                    </Button>
-                  </>
+                  <Button variant="ghost" size="sm" onClick={() => handleMenuClick('admin')}>
+                     Admin
+                  </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={() => handleMenuClick('dashboard')}>
                    Dashboard
@@ -179,14 +174,9 @@ const NavBar = ({ onNavigate }) => {
                 {isAuthenticated && user ? (
                   <>
                     {isGerente && (
-                      <>
-                        <Button variant="ghost" fullWidth onClick={() => handleMenuClick('admin')}>
-                          ⚙️ Painel Admin
-                        </Button>
-                        <Button variant="ghost" fullWidth onClick={() => handleMenuClick('funcionarios')}>
-                          👥 Funcionários
-                        </Button>
-                      </>
+                      <Button variant="ghost" fullWidth onClick={() => handleMenuClick('admin')}>
+                        ⚙️ Painel Admin
+                      </Button>
                     )}
                     <Button variant="ghost" fullWidth onClick={() => handleMenuClick('dashboard')}>
                       📊 Dashboard

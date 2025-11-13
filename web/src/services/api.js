@@ -119,6 +119,17 @@ class ApiService {
     return response.data;
   }
 
+  // Aliases para compatibilidade
+  static async createUser(dados) {
+    return this.addFuncionario(dados);
+  }
+  static async updateUser(id, dados) {
+    return this.updateFuncionario(id, dados);
+  }
+  static async deleteUser(id) {
+    return this.deleteFuncionario(id);
+  }
+
   // --- EMPRESAS ---
   static async createEmpresa(dados) {
     const response = await api.post("/empresas/register", dados);

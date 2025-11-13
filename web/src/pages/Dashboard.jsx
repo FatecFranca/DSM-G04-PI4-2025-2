@@ -67,13 +67,34 @@ const Dashboard = ({ onBackToHome }) => {
         ordersData,
         lowStockData,
       ] = await Promise.all([
-        ApiService.getKPIs(dataInicio, dataFim).catch(() => null),
-        ApiService.getPrevisaoVendas(dataInicio, dataFim).catch(() => null),
-        ApiService.getItensMaisVendidos().catch(() => []),
-        ApiService.getEstatisticasVendas(dataInicio, dataFim).catch(() => null),
-        ApiService.getMetodosPagamento(dataInicio, dataFim).catch(() => []),
-        ApiService.getRecentOrders(10).catch(() => ({ pedidos: [] })),
-        ApiService.getLowStockItems().catch(() => []),
+        ApiService.getKPIs(dataInicio, dataFim).catch((err) => {
+          console.error("Erro ao buscar KPIs:", err);
+          return null;
+        }),
+        ApiService.getPrevisaoVendas(dataInicio, dataFim).catch((err) => {
+          console.error("Erro ao buscar previsão de vendas:", err);
+          return null;
+        }),
+        ApiService.getItensMaisVendidos().catch((err) => {
+          console.error("Erro ao buscar itens mais vendidos:", err);
+          return [];
+        }),
+        ApiService.getEstatisticasVendas(dataInicio, dataFim).catch((err) => {
+          console.error("Erro ao buscar estatísticas de vendas:", err);
+          return null;
+        }),
+        ApiService.getMetodosPagamento(dataInicio, dataFim).catch((err) => {
+          console.error("Erro ao buscar métodos de pagamento:", err);
+          return [];
+        }),
+        ApiService.getRecentOrders(10).catch((err) => {
+          console.error("Erro ao buscar pedidos recentes:", err);
+          return { pedidos: [] };
+        }),
+        ApiService.getLowStockItems().catch((err) => {
+          console.error("Erro ao buscar itens com estoque baixo:", err);
+          return [];
+        }),
       ]);
 
       setKpis(kpisData);
@@ -668,7 +689,7 @@ const Dashboard = ({ onBackToHome }) => {
               {/* Pedidos Recentes */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  📦 Pedidos Recentes
+                 Pedidos Recentes
                 </h3>
                 {recentOrders.length > 0 ? (
                   <div className="overflow-x-auto">

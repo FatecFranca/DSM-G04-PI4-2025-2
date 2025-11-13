@@ -6,6 +6,27 @@ const ObjectId = require("mongoose").Types.ObjectId;
 const { emitNovoPedido, emitAtualizacaoPedido } = require("../websocket");
 
 module.exports = class PedidoController {
+  static async listarPedidos(req, res) {
+    const empresaId = req.user.empresa;
+    const { limit = 10 } = req.query;
+
+    try {
+      const pedidos = await Pedido.find({ empresa: empresaId })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .populate('mesa', 'numero')
+        .populate('garcom', 'nome')
+        .populate('itens.item', 'nome preco');
+
+      res.status(200).json({ pedidos });
+    } catch (error) {
+      res.status(500).json({ 
+        message: "Erro ao buscar pedidos.", 
+        error: error.message 
+      });
+    }
+  }
+
   static async criarPedido(req, res) {
     const mesaId = req.params.mesaId;
     const garcomId = req.user.id;
