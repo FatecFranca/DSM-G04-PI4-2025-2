@@ -1,16 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Call } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ActiveCallProps {
   call: Call;
   onFinishCall: () => void;
-  onMakeOrder: () => void;  // Nova prop
+  onMakeOrder: () => void;
+  onRegisterPayment?: () => void; // Nova prop para pagamento
 }
 
-export default function ActiveCall({ call, onFinishCall, onMakeOrder }: ActiveCallProps) {
+export default function ActiveCall({ call, onFinishCall, onMakeOrder, onRegisterPayment }: ActiveCallProps) {
   const [elapsedTime, setElapsedTime] = React.useState(0);
+  
+  console.log('🎯 ActiveCall - onRegisterPayment existe?', !!onRegisterPayment);
   
   React.useEffect(() => {
     if (!call) return;
@@ -62,12 +65,29 @@ export default function ActiveCall({ call, onFinishCall, onMakeOrder }: ActiveCa
             style={[styles.button, styles.orderButton]} 
             onPress={onMakeOrder}
           >
+            <Ionicons name="restaurant-outline" size={18} color="#fff" />
             <Text style={styles.buttonText}>Fazer Pedido</Text>
           </TouchableOpacity>
+          
+          {onRegisterPayment && (
+            <TouchableOpacity 
+              style={[styles.button, styles.paymentButton]} 
+              onPress={() => {
+                console.log('🔘 Botão Pagamento pressionado no ActiveCall');
+                Alert.alert('Teste', 'Botão foi clicado!');
+                onRegisterPayment();
+              }}
+            >
+              <Ionicons name="cash-outline" size={18} color="#fff" />
+              <Text style={styles.buttonText}>Pagamento</Text>
+            </TouchableOpacity>
+          )}
+          
           <TouchableOpacity 
             style={[styles.button, styles.finishButton]} 
             onPress={onFinishCall}
           >
+            <Ionicons name="checkmark-outline" size={18} color="#fff" />
             <Text style={styles.buttonText}>Finalizar</Text>
           </TouchableOpacity>
         </View>
@@ -154,12 +174,18 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+    flexDirection: 'row',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   orderButton: {
     backgroundColor: '#4CAF50',
+  },
+  paymentButton: {
+    backgroundColor: '#f59e0b',
   },
   finishButton: {
     backgroundColor: '#f44336',
@@ -167,5 +193,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 13,
   },
 });

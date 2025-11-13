@@ -150,13 +150,13 @@ export interface CriarPedidoResponse {
 export const cardapioAPI = {
   // Listar itens do cardápio
   listar: async (): Promise<CardapioItem[]> => {
-    const response = await api.get("/cardapio");
+    const response = await api.get("/cardapios");
     return response.data;
   },
 
   // Buscar item por ID
   buscarPorId: async (id: string): Promise<CardapioItem> => {
-    const response = await api.get(`/cardapio/${id}`);
+    const response = await api.get(`/cardapios/${id}`);
     return response.data;
   },
 };
@@ -325,6 +325,24 @@ export const userAPI = {
   // Faz logout do usuário
   logout: async (refreshToken: string) => {
     const response = await api.post("/auth/logout", { token: refreshToken });
+    return response.data;
+  },
+};
+
+export const pagamentoAPI = {
+  // Adicionar pagamento
+  adicionar: async (contaId: string, valor: number, metodo: string) => {
+    const response = await api.post('/pagamentos', {
+      contaId,
+      valor,
+      metodo,
+    });
+    return response.data;
+  },
+
+  // Listar pagamentos de uma conta
+  listarPorConta: async (contaId: string) => {
+    const response = await api.get(`/pagamentos/conta/${contaId}`);
     return response.data;
   },
 };

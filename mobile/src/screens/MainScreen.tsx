@@ -10,12 +10,68 @@ import Header from "../components/Header";
 import ProfileModal from "../components/ProfileModal";
 import ActiveCall from "../components/ActiveCall";
 import OrderModal from "../components/OrderModal";
-import { chamadoAPI } from "../services/api";
+import PaymentModal from "../components/PaymentModal";
+import { chamadoAPI, contaAPI } from "../services/api";
 
 export default function MainScreen() {
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  
+  // Dados da conta ativa
+  const [contaAtual, setContaAtual] = useState({
+    contaId: '',
+    valorTotal: 0,
+    valorPago: 0,
+  });
+
+  // Debug: monitorar mudanças no estado do modal
+  useEffect(() => {
+    console.log('🎯 isPaymentModalVisible mudou para:', isPaymentModalVisible);
+  }, [isPaymentModalVisible]);
+
+  // Função para buscar dados da conta
+  const carregarContaAtiva = async (mesaId: string) => {
+    try {
+      console.log('🔍 Carregando conta para mesa:', mesaId);
+      const conta = await contaAPI.getContaAtiva(mesaId);
+      console.log('📋 Conta recebida:', conta);
+      if (conta) {
+        setContaAtual({
+          contaId: conta._id,
+          valorTotal: conta.valor_total,
+          valorPago: conta.valor_pago,
+        });
+        console.log('✅ Conta atualizada:', {
+          contaId: conta._id,
+          valorTotal: conta.valor_total,
+          valorPago: conta.valor_pago,
+        });
+      } else {
+        console.log('⚠️ Nenhuma conta ativa encontrada');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar conta:', error);
+    }
+  };
+
+  // Função para abrir modal de pagamento
+  const handleOpenPaymentModal = async () => {
+    console.log('💳 Tentando abrir modal de pagamento');
+    console.log('📊 Conta atual:', contaAtual);
+    console.log('📞 Active call:', activeCall);
+    
+    // Se não tem conta carregada, tenta carregar antes de abrir
+    if (!contaAtual.contaId && activeCall?.table_id) {
+      console.warn('⚠️ Conta não carregada! Carregando agora...');
+      await carregarContaAtiva(activeCall.table_id);
+    }
+    
+    // Abre o modal independente de ter conta ou não
+    console.log('✅ Abrindo modal de pagamento');
+    setIsPaymentModalVisible(true);
+  };
 
   // Buscar dados reais do backend
   const {
@@ -108,6 +164,11 @@ export default function MainScreen() {
         };
         setActiveCall(updatedCallWithTime);
 
+        // Carregar conta ativa da mesa
+        if (updatedCall.table_id) {
+          await carregarContaAtiva(updatedCall.table_id);
+        }
+
         // Feedback tátil
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       } catch (error) {
@@ -151,6 +212,7 @@ export default function MainScreen() {
                 handleCallStatusUpdate(activeCall.id, "completed")
               }
               onMakeOrder={() => setIsOrderModalVisible(true)}
+              onRegisterPayment={handleOpenPaymentModal}
             />
           )}
           <View
@@ -194,6 +256,28 @@ export default function MainScreen() {
         onConfirmOrder={(items) => {
           console.log("Pedido confirmado:", items);
           // Aqui você pode implementar a lógica para salvar o pedido
+        }}
+      />
+
+      <PaymentModal
+        visible={isPaymentModalVisible}
+        onClose={() => setIsPaymentModalVisible(false)}
+        contaId={contaAtual.contaId}
+        valorTotal={contaAtual.valorTotal}
+        valorPago={contaAtual.valorPago}
+        onPaymentSuccess={async (contaFechada) => {
+          setIsPaymentModalVisible(false);
+          
+          // Recarregar dados da conta
+          if (activeCall?.table_id) {
+            await carregarContaAtiva(activeCall.table_id);
+          }
+          
+          // Se a conta foi fechada, limpar o chamado ativo
+          if (contaFechada) {
+            console.log('Conta fechada! Mesa liberada.');
+            setActiveCall(null);
+          }
         }}
       />
     </View>

@@ -12,6 +12,7 @@ import { contaAPI, type Conta } from "@/src/services/api";
 import { websocketService } from "@/src/services/websocket";
 import { router } from "expo-router";
 import OrderModal from "@/src/components/OrderModal";
+import PaymentModal from "@/src/components/PaymentModal";
 import { Ionicons } from "@expo/vector-icons";
 
 interface TableDetailsScreenProps {
@@ -27,6 +28,7 @@ export default function TableDetailsScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
 
   useEffect(() => {
     carregarConta();
@@ -85,8 +87,8 @@ export default function TableDetailsScreen({
   };
 
   const handleRegistrarPagamento = () => {
-    // TODO: Abrir modal de pagamento
-    console.log("Registrar pagamento");
+    console.log("Registrar pagamento - Abrindo modal");
+    setIsPaymentModalVisible(true);
   };
 
   // Mostre o loading antes de qualquer outra verificação
@@ -143,6 +145,24 @@ export default function TableDetailsScreen({
         onConfirmOrder={() => {
           carregarConta();
           setIsOrderModalVisible(false);
+        }}
+      />
+
+      {/* Modal de Pagamento */}
+      <PaymentModal
+        visible={isPaymentModalVisible}
+        onClose={() => setIsPaymentModalVisible(false)}
+        contaId={conta?._id || ''}
+        valorTotal={conta?.valor_total || 0}
+        valorPago={conta?.valor_pago || 0}
+        onPaymentSuccess={async (contaFechada) => {
+          setIsPaymentModalVisible(false);
+          await carregarConta();
+          
+          if (contaFechada) {
+            console.log('Conta fechada! Voltando...');
+            router.back();
+          }
         }}
       />
 

@@ -90,18 +90,26 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
     try {
       setLoading(true);
       
-      // Usando cardápio mockado por enquanto
-      // Para usar o backend real, descomente as linhas abaixo:
-      // const data = await cardapioAPI.listar();
-      // setProducts(data.filter(item => item.disponivel));
+      // Buscar cardápio real do backend
+      const data = await cardapioAPI.listar();
+      const produtosDisponiveis = data.filter((item: CardapioItem) => item.disponivel);
       
-      // Simulando delay de rede
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setProducts(MOCK_CARDAPIO);
+      if (produtosDisponiveis.length === 0) {
+        Alert.alert('Aviso', 'Nenhum produto disponível no cardápio');
+        // Usar mock como fallback se não houver produtos
+        setProducts(MOCK_CARDAPIO);
+      } else {
+        setProducts(produtosDisponiveis);
+      }
       
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar o cardápio');
-      console.error(error);
+      console.error('Erro ao carregar cardápio:', error);
+      Alert.alert(
+        'Erro ao carregar cardápio', 
+        'Usando cardápio de exemplo. Verifique se o backend está rodando.'
+      );
+      // Usar mock como fallback em caso de erro
+      setProducts(MOCK_CARDAPIO);
     } finally {
       setLoading(false);
     }

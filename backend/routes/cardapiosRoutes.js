@@ -11,8 +11,8 @@ router.patch('/:id', isAuthenticated, checkRole(['gerente']), CardapioController
 
 router.delete('/:id', isAuthenticated, checkRole(['gerente']), CardapioController.deleteItem);
 
-
-router.get('/', isAuthenticated, checkRole(['gerente', 'garcom', 'cozinheiro']), CardapioController.getAllItems);
+// Rota pública para listar cardápio (sem autenticação para o mobile)
+router.get('/', CardapioController.getAllItems);
 
 router.get('/:id', isAuthenticated, checkRole(['gerente', 'garcom', 'cozinheiro']), CardapioController.getItemById);
 

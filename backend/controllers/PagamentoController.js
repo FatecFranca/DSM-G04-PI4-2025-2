@@ -36,6 +36,16 @@ module.exports = class PagamentoController {
           .json({ message: "Esta conta não está aberta para pagamentos." });
       }
 
+      // Validar se o valor não excede o restante
+      const valorRestante = Math.round((conta.valor_total - conta.valor_pago) * 100) / 100;
+      const valorPagamento = Math.round(valor * 100) / 100;
+      
+      if (valorPagamento > valorRestante) {
+        return res.status(422).json({
+          message: `O valor do pagamento (R$ ${valorPagamento.toFixed(2)}) não pode ser maior que o restante (R$ ${valorRestante.toFixed(2)}).`,
+        });
+      }
+
       const novoPagamento = new Pagamento({
         conta: contaId,
         valor,
