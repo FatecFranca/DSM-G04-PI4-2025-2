@@ -33,7 +33,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://172.191.224.11:5000', // URL DA SUA VM
+        url: 'http://172.191.224.11:5000', 
         description: 'Servidor de Produção (Azure VM)',
       },
       {
@@ -41,10 +41,9 @@ const swaggerOptions = {
         description: 'Servidor de Desenvolvimento Local',
       }
     ],
-    // Define como a segurança (JWT) funciona
     components: {
       securitySchemes: {
-        bearerAuth: { // (Nome da nossa regra de segurança)
+        bearerAuth: { 
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
@@ -52,14 +51,12 @@ const swaggerOptions = {
         },
       },
     },
-    // Força o "cadeado" em todas as rotas
     security: [
       {
         bearerAuth: [],
       },
     ],
   },
-  // Onde o swagger-jsdoc vai "ler" os comentários
   apis: ['./routes/*.js', './models/*.js'], 
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

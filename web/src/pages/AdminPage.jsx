@@ -50,7 +50,6 @@ const AdminPage = ({ onBackToHome }) => {
     nome: "",
     email: "",
     cpf: "",
-    senha: "",
     cargo: "",
   });
 
@@ -456,7 +455,6 @@ const AdminPage = ({ onBackToHome }) => {
       nome: funcionario.nome,
       email: funcionario.email,
       cpf: funcionario.cpf,
-      senha: "",
       cargo: funcionario.cargo,
     });
     setShowFuncionarioModal(true);
@@ -475,13 +473,9 @@ const AdminPage = ({ onBackToHome }) => {
         cargo: funcionarioForm.cargo,
       };
 
-      if (funcionarioForm.senha) {
-        funcionarioData.senha = funcionarioForm.senha;
-      }
-
       await ApiService.updateUser(editingFuncionario._id, funcionarioData);
 
-      setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+      setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
       setShowFuncionarioModal(false);
       setEditingFuncionario(null);
       await loadData();
@@ -515,7 +509,7 @@ const AdminPage = ({ onBackToHome }) => {
 
     try {
       // Validar campos obrigatórios
-      if (!funcionarioForm.nome || !funcionarioForm.email || !funcionarioForm.cpf || !funcionarioForm.senha || !funcionarioForm.cargo) {
+      if (!funcionarioForm.nome || !funcionarioForm.email || !funcionarioForm.cpf || !funcionarioForm.cargo) {
         setSubmitting(false);
         setError("Todos os campos são obrigatórios");
         return;
@@ -532,13 +526,12 @@ const AdminPage = ({ onBackToHome }) => {
         nome: funcionarioForm.nome,
         email: funcionarioForm.email,
         cpf: funcionarioForm.cpf.replace(/\D/g, ""),
-        senha: funcionarioForm.senha,
         cargo: funcionarioForm.cargo,
       };
 
       await ApiService.createUser(funcionarioData);
 
-      setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+      setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
       setShowFuncionarioModal(false);
       await loadData();
       alert("Funcionário cadastrado com sucesso!");
@@ -799,7 +792,7 @@ const AdminPage = ({ onBackToHome }) => {
                 <button
                   onClick={() => {
                     setEditingFuncionario(null);
-                    setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+                    setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
                     setShowFuncionarioModal(true);
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
@@ -1650,7 +1643,7 @@ const AdminPage = ({ onBackToHome }) => {
                 <button
                   onClick={() => {
                     setShowFuncionarioModal(false);
-                    setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+                    setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
                     setEditingFuncionario(null);
                     setError(null);
                   }}
@@ -1733,23 +1726,6 @@ const AdminPage = ({ onBackToHome }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {editingFuncionario ? "Senha (deixe em branco para manter)" : "Senha *"}
-                  </label>
-                  <input
-                    type="password"
-                    value={funcionarioForm.senha}
-                    onChange={(e) =>
-                      setFuncionarioForm({ ...funcionarioForm, senha: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Digite a senha"
-                    required={!editingFuncionario}
-                    disabled={submitting}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Cargo *
                   </label>
                   <select
@@ -1773,7 +1749,7 @@ const AdminPage = ({ onBackToHome }) => {
                     type="button"
                     onClick={() => {
                       setShowFuncionarioModal(false);
-                      setFuncionarioForm({ nome: "", email: "", cpf: "", senha: "", cargo: "" });
+                      setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
                       setEditingFuncionario(null);
                       setError(null);
                     }}

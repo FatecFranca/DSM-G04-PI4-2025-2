@@ -36,7 +36,6 @@ module.exports = class PagamentoController {
           .json({ message: "Esta conta não está aberta para pagamentos." });
       }
 
-      // Validar se o valor não excede o restante
       const valorRestante = Math.round((conta.valor_total - conta.valor_pago) * 100) / 100;
       const valorPagamento = Math.round(valor * 100) / 100;
       
@@ -71,7 +70,6 @@ module.exports = class PagamentoController {
           conta_ativa: null,
         });
 
-        // Emitir eventos WebSocket quando a conta for fechada
         emitAtualizacaoMesa(empresaId, {
           _id: conta.mesa,
           status: "livre",
@@ -79,7 +77,6 @@ module.exports = class PagamentoController {
         });
       }
 
-      // Emitir eventos WebSocket
       emitNovoPagamento(empresaId, {
         _id: novoPagamento._id,
         conta: contaId,

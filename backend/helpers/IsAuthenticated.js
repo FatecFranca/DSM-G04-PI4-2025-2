@@ -1,4 +1,3 @@
-// helpers/isAuthenticated.js (CORRIGIDO)
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const getUserToken = require("./getUserToken");

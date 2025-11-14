@@ -30,7 +30,6 @@ module.exports = class ChamadoController {
         await novaConta.save();
         mesa.conta_ativa = novaConta._id;
 
-        // Emitir evento de nova conta
         emitNovaConta(mesa.empresa, {
           _id: novaConta._id,
           mesa: mesa._id,
@@ -58,7 +57,6 @@ module.exports = class ChamadoController {
       await novoChamado.save();
       await mesa.save();
 
-      // Emitir eventos WebSocket
       emitNovoChamado(mesa.empresa, {
         _id: novoChamado._id,
         mesa: { _id: mesa._id, numero: mesa.numero },
@@ -111,7 +109,6 @@ module.exports = class ChamadoController {
 
       await Mesa.findByIdAndUpdate(chamado.mesa, { status: "ocupada" });
 
-      // Emitir eventos WebSocket
       emitAtualizacaoChamado(chamado.empresa, {
         _id: chamado._id,
         status: chamado.status,
@@ -149,7 +146,6 @@ module.exports = class ChamadoController {
       chamado.status = "resolvido";
       await chamado.save();
 
-      // Emitir evento WebSocket
       emitAtualizacaoChamado(chamado.empresa, {
         _id: chamado._id,
         status: chamado.status,

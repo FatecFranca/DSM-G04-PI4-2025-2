@@ -102,7 +102,6 @@ module.exports = class PedidoController {
         }
       );
 
-      // Emitir evento WebSocket de novo pedido
       emitNovoPedido(empresaId, {
         _id: novoPedido._id,
         mesa: mesaId,
@@ -145,7 +144,6 @@ module.exports = class PedidoController {
       pedido.cozinheiro = cozinheiroId;
       await pedido.save();
 
-      // Emitir evento WebSocket de atualização
       emitAtualizacaoPedido(empresaId, {
         _id: pedido._id,
         status: pedido.status,
@@ -183,7 +181,6 @@ module.exports = class PedidoController {
       pedido.status = "pronto";
       await pedido.save();
 
-      // Emitir evento WebSocket de atualização
       emitAtualizacaoPedido(pedido.empresa, {
         _id: pedido._id,
         status: pedido.status,
@@ -228,7 +225,6 @@ module.exports = class PedidoController {
       pedido.status = "entregue";
       await pedido.save();
 
-      // Emitir evento WebSocket de atualização
       emitAtualizacaoPedido(pedido.empresa, {
         _id: pedido._id,
         status: pedido.status,

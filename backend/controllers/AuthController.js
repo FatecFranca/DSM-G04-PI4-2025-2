@@ -1,4 +1,3 @@
-// controllers/AuthController.js
 const jwt = require("jsonwebtoken");
 const RefreshToken = require("../models/RefreshToken");
 const User = require("../models/User");
@@ -33,7 +32,6 @@ module.exports = class AuthController {
 
       res.status(200).json({ accessToken });
     } catch (err) {
-      // Se o jwt.verify falhar (token expirado, assinatura errada)
       return res
         .status(403)
         .json({ message: "Refresh token inválido ou expirado." });

@@ -144,7 +144,7 @@ router.delete('/:id', isAuthenticated, checkRole(['gerente']), CardapioControlle
  *               items:
  *                 $ref: '#/components/schemas/Cardapio'
  */
-router.get('/', CardapioController.getAllItems);
+router.get('/', isAuthenticated, CardapioController.getAllItems);
 
 /**
  * @swagger

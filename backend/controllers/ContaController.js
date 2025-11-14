@@ -41,7 +41,6 @@ module.exports = class ContaController {
       mesa.conta_ativa = novaConta._id;
       await mesa.save();
 
-      // Emitir eventos WebSocket
       emitNovaConta(empresaId, {
         _id: novaConta._id,
         mesa: mesa._id,
@@ -173,7 +172,6 @@ module.exports = class ContaController {
         conta_ativa: null,
       });
 
-      // Emitir eventos WebSocket
       emitAtualizacaoConta(conta.empresa, {
         _id: conta._id,
         status: conta.status,

@@ -33,8 +33,6 @@ module.exports = class CardapioController {
     }
     static async getAllItems(req, res) {
         try {
-            // Se tiver autenticação (req.user), filtra por empresa
-            // Se não tiver, retorna todos os itens disponíveis
             const query = {};
             
             if (req.user) {
@@ -42,18 +40,16 @@ module.exports = class CardapioController {
                 const cargo = req.user.cargo;
                 
                 query.empresa = empresaId;
-                
-                // Se não for gerente, mostra apenas disponíveis
+
                 if (cargo !== 'gerente') {
                     query.disponivel = true;
                 }
             } else {
-                // Sem autenticação, mostra apenas disponíveis
                 query.disponivel = true;
             }
 
             const itens = await Cardapio.find(query).sort('categoria nome');
-            res.status(200).json(itens); // Retorna array direto, não objeto com {itens}
+            res.status(200).json(itens);
         } catch (error) {
             res.status(500).json({ message: "Erro ao buscar cardápio.", error: error.message });
         }

@@ -1,6 +1,7 @@
 const Conta = require("../models/Conta");
 const Pedido = require("../models/Pedido");
 const Pagamento = require('../models/Pagamento')
+const Chamado = require('../models/Chamado')
 const mongoose = require("mongoose");
 const ss = require("simple-statistics");
 
@@ -285,6 +286,116 @@ module.exports = class RelatorioController {
           message: "Erro ao buscar métodos de pagamento.",
           error: error.message,
         });
+    }
+  }
+  static async getMeuDesempenhoAtendimento(req, res) {
+    const empresaId = req.user.empresa;
+    const garcomId = req.user.id; 
+    const filtroData = criarFiltroData(
+      req.query.dataInicio, 
+      req.query.dataFim, 
+      "createdAt" 
+    );
+
+    try {
+      const stats = await Chamado.aggregate([
+        {
+          $match: {
+            empresa: new mongoose.Types.ObjectId(empresaId),
+            garcom: new mongoose.Types.ObjectId(garcomId), 
+            status: { $ne: "pendente" }, 
+            timestamp_atendimento: { $exists: true },
+            ...filtroData,
+          },
+        },
+        {
+          $project: {
+            tempoDeEspera_ms: {
+              $subtract: ["$timestamp_atendimento", "$createdAt"],
+            },
+            garcom: 1
+          },
+        },
+        {
+          $group: {
+            _id: "$garcom", 
+            tempoMedio_ms: { $avg: "$tempoDeEspera_ms" },
+            totalChamados: { $sum: 1 }
+          },
+        },
+      ]);
+
+      if (stats.length === 0) {
+        return res.status(200).json({ 
+          tempoMedioSegundos: 0, 
+          totalChamados: 0,
+          nomeGarcom: req.user.nome 
+        });
+      }
+
+      const tempoMedioEmSegundos = (stats[0].tempoMedio_ms / 1000).toFixed(2);
+
+      res.status(200).json({
+        tempoMedioSegundos: parseFloat(tempoMedioEmSegundos),
+        totalChamados: stats[0].totalChamados,
+        nomeGarcom: req.user.nome 
+      });
+      
+    } catch (error) {
+       res.status(500).json({ message: "Erro ao calcular seu tempo de atendimento.", error: error.message });
+    }
+  }
+  static async getMeuDesempenhoVendas(req, res) {
+    const empresaId = req.user.empresa;
+    const garcomId = req.user.id;
+    const filtroData = criarFiltroData(req.query.dataInicio, req.query.dataFim, "createdAt");
+
+    try {
+      const stats = await Pedido.aggregate([
+        {
+          $match: {
+            empresa: new mongoose.Types.ObjectId(empresaId),
+            garcom: new mongoose.Types.ObjectId(garcomId),
+            ...filtroData,
+          },
+        },
+        { $unwind: "$itens" },
+        {
+          $project: {
+            pedidoId: "$_id",
+            subtotal_item: { $multiply: ["$itens.quantidade", "$itens.preco_unitario"] },
+          },
+        },
+        {
+          $group: {
+            _id: "$pedidoId",
+            valor_total_do_pedido: { $sum: "$subtotal_item" },
+          },
+        },
+        {
+          $group: {
+            _id: null, 
+            faturamentoTotal: { $sum: "$valor_total_do_pedido" },
+            totalPedidos: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            faturamentoTotal: 1,
+            totalPedidos: 1,
+            ticketMedio: { $divide: ["$faturamentoTotal", "$totalPedidos"] },
+          },
+        },
+      ]);
+
+      if (stats.length === 0) {
+        return res.status(200).json({ faturamentoTotal: 0, totalPedidos: 0, ticketMedio: 0 });
+      }
+
+      res.status(200).json(stats[0]); 
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao calcular seu desempenho de vendas.", error: error.message });
     }
   }
 };
