@@ -117,7 +117,7 @@ router.get(
 router.patch(
   '/:id/cancelar',
   isAuthenticated,
-  checkRole(['gerente']),
+  checkRole(['gerente', 'garcom']),
   ContaController.cancelarConta
 );
 

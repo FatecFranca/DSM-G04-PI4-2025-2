@@ -40,7 +40,7 @@ module.exports = class CardapioController {
                 const cargo = req.user.cargo;
                 
                 query.empresa = empresaId;
-
+                
                 if (cargo !== 'gerente') {
                     query.disponivel = true;
                 }

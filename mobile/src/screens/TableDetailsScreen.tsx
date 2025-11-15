@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -74,9 +75,18 @@ export default function TableDetailsScreen({
       const contaAtiva = await contaAPI.getContaAtiva(mesaId);
       console.log("Conta carregada:", contaAtiva);
       setConta(contaAtiva);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao carregar conta:", error);
-      setError("Erro ao carregar detalhes da conta");
+      
+      // Se for erro 401 (não autorizado), pode ser token expirado
+      if (error.response?.status === 401) {
+        setError("Sessão expirada. Por favor, faça login novamente.");
+      } else if (error.response?.status === 404) {
+        // 404 é normal quando não tem conta ativa
+        setConta(null);
+      } else {
+        setError("Erro ao carregar detalhes da conta");
+      }
     } finally {
       setLoading(false);
     }
@@ -89,6 +99,37 @@ export default function TableDetailsScreen({
   const handleRegistrarPagamento = () => {
     console.log("Registrar pagamento - Abrindo modal");
     setIsPaymentModalVisible(true);
+  };
+
+  const handleCancelarConta = () => {
+    Alert.alert(
+      'Cancelar Conta',
+      'Tem certeza que deseja cancelar esta conta? Esta ação não pode ser desfeita.',
+      [
+        {
+          text: 'Não',
+          style: 'cancel',
+        },
+        {
+          text: 'Sim, Cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await contaAPI.cancelar(conta!._id);
+              Alert.alert('Sucesso', 'Conta cancelada com sucesso!', [
+                {
+                  text: 'OK',
+                  onPress: () => router.back(),
+                },
+              ]);
+            } catch (error: any) {
+              Alert.alert('Erro', error.response?.data?.message || 'Erro ao cancelar conta');
+              console.error('Erro ao cancelar conta:', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Mostre o loading antes de qualquer outra verificação
@@ -104,12 +145,37 @@ export default function TableDetailsScreen({
   if (error) {
     return (
       <ThemedView style={styles.container}>
-        <ThemedText style={styles.error}>{error}</ThemedText>
-        <TouchableOpacity style={styles.retryButton} onPress={carregarConta}>
-          <ThemedText style={styles.retryButtonText}>
-            Tentar Novamente
-          </ThemedText>
-        </TouchableOpacity>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={24} color="#0ea5e9" />
+            </TouchableOpacity>
+            <ThemedText style={styles.titulo}>Erro</ThemedText>
+          </View>
+        </View>
+        
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={64} color="#ef4444" />
+          <ThemedText style={styles.error}>{error}</ThemedText>
+          <View style={styles.errorButtons}>
+            <TouchableOpacity style={styles.retryButton} onPress={carregarConta}>
+              <ThemedText style={styles.retryButtonText}>
+                Tentar Novamente
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.retryButton, { backgroundColor: '#666' }]} 
+              onPress={() => router.back()}
+            >
+              <ThemedText style={styles.retryButtonText}>
+                Voltar
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ThemedView>
     );
   }
@@ -244,12 +310,24 @@ export default function TableDetailsScreen({
           <ThemedText style={styles.buttonText}>Adicionar Pedido</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, styles.buttonSecondary]}
-          onPress={handleRegistrarPagamento}
-        >
-          <ThemedText style={styles.buttonText}>Registrar Pagamento</ThemedText>
-        </TouchableOpacity>
+        {/* Se valor_total > 0: botão de registrar pagamento */}
+        {(conta.valor_total || 0) > 0 ? (
+          <TouchableOpacity
+            style={[styles.button, styles.buttonSecondary]}
+            onPress={handleRegistrarPagamento}
+          >
+            <ThemedText style={styles.buttonText}>Registrar Pagamento</ThemedText>
+          </TouchableOpacity>
+        ) : (
+          /* Se valor_total = 0: botão de cancelar conta */
+          <TouchableOpacity
+            style={[styles.button, styles.buttonDanger]}
+            onPress={handleCancelarConta}
+          >
+            <Ionicons name="close-circle-outline" size={20} color="#fff" />
+            <ThemedText style={styles.buttonText}>Cancelar Conta</ThemedText>
+          </TouchableOpacity>
+        )}
       </View>
     </ThemedView>
   );
@@ -343,12 +421,18 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
   },
   buttonPrimary: {
     backgroundColor: "#0ea5e9", // azul
   },
   buttonSecondary: {
     backgroundColor: "#22c55e", // verde
+  },
+  buttonDanger: {
+    backgroundColor: "#ef4444", // vermelho
   },
   buttonText: {
     color: "#fff",
@@ -359,6 +443,19 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     textAlign: "center",
     marginBottom: 16,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    gap: 16,
+  },
+  errorButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
   },
   retryButton: {
     backgroundColor: "#0ea5e9",

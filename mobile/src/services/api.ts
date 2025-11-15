@@ -292,7 +292,7 @@ export const contaAPI = {
     try {
       const response = await api.get(`/contas/mesa/${mesaId}/ativa`);
       return response.data.conta || null;
-    } catch (error) {
+    } catch (error: any) {
       if (error.response?.status === 404) {
         return null;
       }
@@ -343,6 +343,40 @@ export const pagamentoAPI = {
   // Listar pagamentos de uma conta
   listarPorConta: async (contaId: string) => {
     const response = await api.get(`/pagamentos/conta/${contaId}`);
+    return response.data;
+  },
+};
+
+export interface DesempenhoVendas {
+  faturamentoTotal: number;
+  totalPedidos: number;
+  ticketMedio: number;
+}
+
+export interface DesempenhoAtendimento {
+  tempoMedioSegundos: number;
+  totalChamados: number;
+  nomeGarcom: string;
+}
+
+export const relatorioAPI = {
+  // Desempenho de vendas do garçom logado
+  meuDesempenhoVendas: async (dataInicio?: string, dataFim?: string): Promise<DesempenhoVendas> => {
+    const params = new URLSearchParams();
+    if (dataInicio) params.append('dataInicio', dataInicio);
+    if (dataFim) params.append('dataFim', dataFim);
+    
+    const response = await api.get(`/relatorios/meu-desempenho-vendas?${params.toString()}`);
+    return response.data;
+  },
+
+  // Desempenho de atendimento do garçom logado
+  meuDesempenhoAtendimento: async (dataInicio?: string, dataFim?: string): Promise<DesempenhoAtendimento> => {
+    const params = new URLSearchParams();
+    if (dataInicio) params.append('dataInicio', dataInicio);
+    if (dataFim) params.append('dataFim', dataFim);
+    
+    const response = await api.get(`/relatorios/meu-desempenho-atendimento?${params.toString()}`);
     return response.data;
   },
 };
