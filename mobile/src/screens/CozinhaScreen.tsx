@@ -39,7 +39,6 @@ export default function CozinhaScreen() {
 
     const handlePedidoAtualizado = (pedidoAtualizado: any) => {
       console.log('📡 Pedido atualizado:', pedidoAtualizado);
-      // Recarrega toda a lista para garantir que está atualizada
       carregarPedidos();
     };
 
@@ -60,7 +59,6 @@ export default function CozinhaScreen() {
     } catch (error: any) {
       console.error('Erro ao carregar pedidos:', error);
       
-      // Se for 401 ou 403, pode ser problema de autenticação
       if (error.response?.status === 401 || error.response?.status === 403) {
         Alert.alert(
           'Sessão Expirada',
@@ -76,7 +74,6 @@ export default function CozinhaScreen() {
           ]
         );
       } else if (error.response?.status === 404) {
-        // Endpoint não encontrado - pode ser problema no backend
         setError('Endpoint de pedidos não encontrado. Verifique se o backend está rodando.');
       } else {
         setError('Erro ao carregar pedidos. Tente fazer login novamente.');
@@ -127,11 +124,11 @@ export default function CozinhaScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'enviado_cozinha':
-        return '#ef4444'; // vermelho
+        return '#ef4444';
       case 'preparando':
-        return '#f59e0b'; // amarelo
+        return '#f59e0b';
       case 'pronto':
-        return '#10b981'; // verde
+        return '#10b981';
       default:
         return '#666';
     }
@@ -307,7 +304,6 @@ export default function CozinhaScreen() {
   const pedidosPreparando = pedidos.filter((p) => p.status === 'preparando');
   const pedidosProntos = pedidos.filter((p) => p.status === 'pronto');
 
-  // Filtra pedidos baseado no status selecionado
   const pedidosFiltrados = filtroStatus === 'todos' 
     ? pedidos 
     : pedidos.filter(p => p.status === filtroStatus);

@@ -8,7 +8,7 @@ interface HeaderProps {
   title?: string;
   subtitle?: string;
   onProfilePress: () => void;
-  showPerformance?: boolean; // Opcional, padrão true
+  showPerformance?: boolean;
 }
 
 export default function Header({ 

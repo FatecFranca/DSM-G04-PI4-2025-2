@@ -18,7 +18,6 @@ interface ChamadosModalProps {
   chamados: Chamado[];
   mesas: Mesa[];
   onAtenderChamado: (chamadoId: string) => void;
-  // não precisa mais do getTempoDecorrido
 }
 
 export default function ChamadosModal({
@@ -57,7 +56,6 @@ export default function ChamadosModal({
           ) : (
             <ScrollView style={styles.chamadosList}>
               {chamadosAbertos.map((chamado) => {
-                // Se chamado.mesa já é um objeto com número, use ele, senão busque na lista de mesas
                 const mesa =
                   typeof chamado.mesa === "object"
                     ? chamado.mesa
@@ -80,12 +78,10 @@ export default function ChamadosModal({
                       onPress={async () => {
                         await onAtenderChamado(chamado._id);
                         onClose();
-                        // Pega o ID da mesa dependendo se é string ou objeto
                         const mesaId =
                           typeof chamado.mesa === "string"
                             ? chamado.mesa
                             : chamado.mesa._id;
-                        // Navega para a página de detalhes da mesa
                         router.push({
                           pathname: "/mesa/[id]",
                           params: { id: mesaId, numero: mesa.numero },

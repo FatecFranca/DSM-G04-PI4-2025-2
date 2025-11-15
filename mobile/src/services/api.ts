@@ -11,7 +11,6 @@ const api = axios.create({
   },
 });
 
-// Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
   (config) => {
     const token = useUserStore.getState().token;
@@ -25,7 +24,6 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para lidar com refresh token em erros 401
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
@@ -46,10 +44,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Se o erro for 401 e não for uma tentativa de refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Se já está fazendo refresh, adiciona à fila
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -68,7 +64,6 @@ api.interceptors.response.use(
       const refreshToken = useUserStore.getState().refreshToken;
 
       if (!refreshToken) {
-        // Se não tem refresh token, faz logout
         await useUserStore.getState().logout();
         processQueue(error, null);
         isRefreshing = false;
@@ -76,7 +71,6 @@ api.interceptors.response.use(
       }
 
       try {
-        // Tenta renovar o token
         const response = await axios.post(
           `${API_CONFIG.BASE_URL}/auth/refresh`,
           { token: refreshToken }
@@ -84,20 +78,16 @@ api.interceptors.response.use(
 
         const { accessToken } = response.data;
 
-        // Atualiza o token no store e AsyncStorage
         await AsyncStorage.setItem("@auth_token", accessToken);
         useUserStore.getState().setToken(accessToken);
 
-        // Atualiza o header da requisição original
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
-        // Processa a fila de requisições que falharam
         processQueue(null, accessToken);
 
-        // Retenta a requisição original
         return api(originalRequest);
       } catch (refreshError) {
-        // Se falhar ao renovar, faz logout
+
         processQueue(refreshError, null);
         await useUserStore.getState().logout();
         return Promise.reject(refreshError);
@@ -110,7 +100,6 @@ api.interceptors.response.use(
   }
 );
 
-// Tipos
 export interface CardapioItem {
   _id: string;
   nome: string;
@@ -146,15 +135,12 @@ export interface CriarPedidoResponse {
   };
 }
 
-// Endpoints
 export const cardapioAPI = {
-  // Listar itens do cardápio
   listar: async (): Promise<CardapioItem[]> => {
     const response = await api.get("/cardapios");
     return response.data;
   },
 
-  // Buscar item por ID
   buscarPorId: async (id: string): Promise<CardapioItem> => {
     const response = await api.get(`/cardapios/${id}`);
     return response.data;
@@ -186,7 +172,6 @@ export interface PedidoCozinha {
 }
 
 export const pedidoAPI = {
-  // Criar pedido para uma mesa
   criar: async (
     mesaId: string,
     pedido: CriarPedidoRequest
@@ -195,31 +180,26 @@ export const pedidoAPI = {
     return response.data;
   },
 
-  // Listar pedidos prontos (garçom)
   listarProntos: async () => {
     const response = await api.get("/pedidos/garcom/prontos");
     return response.data;
   },
 
-  // Marcar pedido como entregue
   marcarEntregue: async (pedidoId: string) => {
     const response = await api.patch(`/pedidos/${pedidoId}/entregue`);
     return response.data;
   },
 
-  // Listar pedidos da cozinha (cozinheiro)
   listarCozinha: async (): Promise<PedidoCozinha[]> => {
     const response = await api.get("/pedidos/cozinha");
     return response.data.pedidos || [];
   },
 
-  // Iniciar preparo (cozinheiro)
   iniciarPreparo: async (pedidoId: string) => {
     const response = await api.patch(`/pedidos/${pedidoId}/preparar`);
     return response.data;
   },
 
-  // Marcar como pronto (cozinheiro)
   marcarPronto: async (pedidoId: string) => {
     const response = await api.patch(`/pedidos/${pedidoId}/pronto`);
     return response.data;
@@ -239,17 +219,14 @@ export interface Mesa {
 }
 
 export const mesaAPI = {
-  // Listar mesas
   listar: async (): Promise<Mesa[]> => {
     try {
       const response = await api.get("/mesas");
 
-      // Verifica se a resposta tem o formato esperado { mesas: Mesa[] }
       if (!response.data || !response.data.mesas) {
         throw new Error("Formato de resposta inválido");
       }
 
-      // Retorna o array de mesas
       return response.data.mesas;
     } catch (error) {
       console.error("Erro na requisição da API:", error);
@@ -257,7 +234,6 @@ export const mesaAPI = {
     }
   },
 
-  // Buscar mesa por ID
   buscarPorId: async (id: string): Promise<Mesa> => {
     const response = await api.get(`/mesas/${id}`);
     return response.data;
@@ -266,20 +242,18 @@ export const mesaAPI = {
 
 export interface Chamado {
   _id: string;
-  mesa: string | { _id: string; numero: number }; // Pode ser o ID ou o objeto da mesa quando populado
+  mesa: string | { _id: string; numero: number };
   status: "pendente" | "atendido" | "resolvido";
   createdAt: string;
   updatedAt: string;
 }
 
 export const chamadoAPI = {
-  // Listar chamados
   listar: async (): Promise<Chamado[]> => {
     const response = await api.get("/chamados/pendentes");
     return response.data.chamados || [];
   },
 
-  // Atender chamado
   atender: async (chamadoId: string): Promise<Chamado> => {
     const response = await api.patch(`/chamados/${chamadoId}/aceitar`);
     return response.data.chamado;
@@ -318,7 +292,6 @@ export interface Conta {
 }
 
 export const contaAPI = {
-  // Abrir conta para uma mesa
   abrir: async (mesaId: string): Promise<{ message: string; conta: Conta }> => {
     try {
       const response = await api.post("/contas", { mesaId });
@@ -329,7 +302,6 @@ export const contaAPI = {
     }
   },
 
-  // Obter conta ativa de uma mesa
   getContaAtiva: async (mesaId: string): Promise<Conta | null> => {
     try {
       const response = await api.get(`/contas/mesa/${mesaId}/ativa`);
@@ -342,7 +314,6 @@ export const contaAPI = {
     }
   },
 
-  // Cancelar conta (apenas gerente)
   cancelar: async (contaId: string): Promise<{ message: string }> => {
     const response = await api.patch(`/contas/${contaId}/cancelar`);
     return response.data;
@@ -350,13 +321,11 @@ export const contaAPI = {
 };
 
 export const userAPI = {
-  // Faz login do usuário (email + credencial: senha ou PIN)
   login: async (email: string, credencial: string) => {
     const response = await api.post("/users/login", { email, credencial });
     return response.data;
   },
 
-  // Renova o access token usando o refresh token
   refresh: async (refreshToken: string) => {
     const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
       token: refreshToken,
@@ -364,7 +333,6 @@ export const userAPI = {
     return response.data;
   },
 
-  // Faz logout do usuário
   logout: async (refreshToken: string) => {
     const response = await api.post("/auth/logout", { token: refreshToken });
     return response.data;
@@ -372,7 +340,6 @@ export const userAPI = {
 };
 
 export const pagamentoAPI = {
-  // Adicionar pagamento
   adicionar: async (contaId: string, valor: number, metodo: string) => {
     const response = await api.post('/pagamentos', {
       contaId,
@@ -382,7 +349,6 @@ export const pagamentoAPI = {
     return response.data;
   },
 
-  // Listar pagamentos de uma conta
   listarPorConta: async (contaId: string) => {
     const response = await api.get(`/pagamentos/conta/${contaId}`);
     return response.data;
@@ -402,7 +368,6 @@ export interface DesempenhoAtendimento {
 }
 
 export const relatorioAPI = {
-  // Desempenho de vendas do garçom logado
   meuDesempenhoVendas: async (dataInicio?: string, dataFim?: string): Promise<DesempenhoVendas> => {
     const params = new URLSearchParams();
     if (dataInicio) params.append('dataInicio', dataInicio);
@@ -412,7 +377,6 @@ export const relatorioAPI = {
     return response.data;
   },
 
-  // Desempenho de atendimento do garçom logado
   meuDesempenhoAtendimento: async (dataInicio?: string, dataFim?: string): Promise<DesempenhoAtendimento> => {
     const params = new URLSearchParams();
     if (dataInicio) params.append('dataInicio', dataInicio);

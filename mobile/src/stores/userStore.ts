@@ -43,28 +43,23 @@ export const useUserStore = create<UserState>((set) => ({
   },
   setRefreshToken: (refreshToken) => set({ refreshToken }),
   setAuth: async (user, accessToken, refreshToken) => {
-    // Armazena tokens no AsyncStorage
+
     await AsyncStorage.setItem("@auth_token", accessToken);
     await AsyncStorage.setItem("@refresh_token", refreshToken);
     await AsyncStorage.setItem("@user_data", JSON.stringify(user));
 
-    // Atualiza o header da API
     api.defaults.headers.Authorization = `Bearer ${accessToken}`;
 
-    // Conecta ao WebSocket
     websocketService.connect(accessToken);
 
-    // Inicializa listeners globais de chamados (apenas para garçom/gerente)
     if (user.cargo === 'garcom' || user.cargo === 'gerente') {
       useChamadoStore.getState().initializeListeners();
     }
 
-    // Inicializa listener de mesa_atualizada
     websocketService.on("mesa_atualizada", (mesaAtualizada) => {
       useMesaStore.getState().updateMesa(mesaAtualizada._id, mesaAtualizada);
     });
 
-    // Carrega chamados iniciais (apenas para garçom/gerente)
     if (user.cargo === 'garcom' || user.cargo === 'gerente') {
       try {
         const chamados = await chamadoAPI.listar();
@@ -74,7 +69,6 @@ export const useUserStore = create<UserState>((set) => ({
       }
     }
 
-    // Carrega mesas iniciais (apenas para garçom/gerente)
     if (user.cargo === 'garcom' || user.cargo === 'gerente') {
       try {
         const mesas = await mesaAPI.listar();
@@ -84,22 +78,18 @@ export const useUserStore = create<UserState>((set) => ({
       }
     }
 
-    // Atualiza o estado
     set({ user, token: accessToken, refreshToken });
   },
   logout: async () => {
-    // Desconecta do WebSocket
+
     websocketService.disconnect();
 
-    // Remove tokens do AsyncStorage
     await AsyncStorage.removeItem("@auth_token");
     await AsyncStorage.removeItem("@refresh_token");
     await AsyncStorage.removeItem("@user_data");
 
-    // Remove header da API
     delete api.defaults.headers.Authorization;
-
-    // Limpa o estado
+    
     set({ user: null, token: null, refreshToken: null });
   },
 }));

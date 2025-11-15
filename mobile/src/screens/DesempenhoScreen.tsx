@@ -158,7 +158,7 @@ export default function DesempenhoScreen() {
                     labels: ['Faturamento', 'Pedidos', 'Ticket Médio'],
                     datasets: [{
                       data: [
-                        vendas.faturamentoTotal / 10, // Dividir para escalar melhor
+                        vendas.faturamentoTotal / 10,
                         vendas.totalPedidos,
                         vendas.ticketMedio
                       ]
@@ -219,7 +219,6 @@ export default function DesempenhoScreen() {
               </View>
             </View>
 
-            {/* Gráfico de Pizza - Distribuição de Tempo */}
             {atendimento && atendimento.totalChamados > 0 && (
               <>
                 <View style={styles.divider} />
@@ -263,7 +262,6 @@ export default function DesempenhoScreen() {
           </View>
         </View>
 
-        {/* Card de Dicas */}
         <View style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color="#f59e0b" />

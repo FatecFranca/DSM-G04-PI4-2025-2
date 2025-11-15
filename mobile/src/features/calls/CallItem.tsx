@@ -15,7 +15,6 @@ const CallItem: React.FC<CallItemProps> = ({ call, disabled, isOldest, onStatusU
   const [isUrgent, setIsUrgent] = React.useState(false);
 
   React.useEffect(() => {
-    // Função para calcular e formatar o tempo de espera
     const updateElapsedTime = () => {
       const now = new Date();
       const callTime = new Date(call.timestamp);
@@ -24,7 +23,6 @@ const CallItem: React.FC<CallItemProps> = ({ call, disabled, isOldest, onStatusU
       const minutes = Math.floor(diffInSeconds / 60);
       const seconds = diffInSeconds % 60;
       
-      // Marca como urgente se passar de 2.5 minutos (150 segundos)
       setIsUrgent(diffInSeconds >= 150);
       
       if (minutes > 0) {
@@ -34,7 +32,6 @@ const CallItem: React.FC<CallItemProps> = ({ call, disabled, isOldest, onStatusU
       }
     };
 
-    // Atualiza imediatamente e depois a cada segundo
     updateElapsedTime();
     const interval = setInterval(updateElapsedTime, 1000);
 
@@ -116,11 +113,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   oldestContainer: {
-    backgroundColor: '#fef2f2', // Red-50
+    backgroundColor: '#fef2f2',
     borderWidth: 1,
-    borderColor: '#fee2e2', // Red-100
+    borderColor: '#fee2e2',
   },
-  // Removido headerRow, urgentBadge e urgentText pois não são mais necessários
+
   info: {
     flex: 1,
   },
@@ -145,10 +142,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   oldestWaitingTimeContainer: {
-    backgroundColor: '#fee2e2', // Red-100
+    backgroundColor: '#fee2e2',
   },
   oldestWaitingTime: {
-    color: '#991b1b', // Red-800
+    color: '#991b1b',
   },
   actions: {
     marginLeft: 16,
@@ -170,7 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
   },
   urgentAcceptButton: {
-    backgroundColor: '#dc2626', // Red-600
+    backgroundColor: '#dc2626',
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,

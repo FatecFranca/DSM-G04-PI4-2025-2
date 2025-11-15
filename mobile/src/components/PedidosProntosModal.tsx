@@ -54,7 +54,7 @@ export default function PedidosProntosModal({ visible, onClose }: Props) {
             try {
               setProcessando(pedidoId);
               await pedidoAPI.marcarEntregue(pedidoId);
-              await carregarPedidosProntos(); // Recarrega da store
+              await carregarPedidosProntos();
               Alert.alert('Sucesso', 'Pedido marcado como entregue!');
             } catch (error: any) {
               Alert.alert(

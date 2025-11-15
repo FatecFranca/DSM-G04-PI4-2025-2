@@ -22,20 +22,16 @@ export function useAuthentication() {
         const storedUser = await AsyncStorage.getItem("@user_data");
 
         if (storedToken && storedRefreshToken && storedUser) {
-          // Restaura o estado completo
           await setToken(storedToken);
           setRefreshToken(storedRefreshToken);
           setUser(JSON.parse(storedUser));
 
-          // Conecta ao WebSocket
           console.log("🔌 Conectando WebSocket...");
           websocketService.connect(storedToken);
 
-          // Inicializa listeners globais
           console.log("🎧 Inicializando listeners...");
           initializeListeners();
 
-          // Carrega chamados iniciais
           console.log("🔍 Carregando chamados iniciais...");
           try {
             const chamados = await chamadoAPI.listar();
@@ -45,14 +41,12 @@ export function useAuthentication() {
             console.error("❌ Erro ao carregar chamados:", error);
           }
 
-          // Se estamos em uma rota pública e temos token, vamos para o app
-          const inPublicGroup = segments[0] === "(public)";
+          const inPublicGroup = segments[0] && segments[0].startsWith("(public)");
           if (inPublicGroup) {
             router.replace("/");
           }
         } else {
-          // Se não temos token e estamos em uma rota protegida, vamos para o login
-          const inPublicGroup = segments[0] === "(public)";
+          const inPublicGroup = segments[0] && segments[0].startsWith("(public)");
           if (!inPublicGroup) {
             router.replace("/login");
           }

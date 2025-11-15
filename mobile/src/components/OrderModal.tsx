@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { cardapioAPI, pedidoAPI, CardapioItem } from '../services/api';
 
-// Cardápio mockado para desenvolvimento
 const MOCK_CARDAPIO: CardapioItem[] = [
   {
     _id: 'mock1',
@@ -65,8 +64,8 @@ type OrderItem = {
 type OrderModalProps = {
   visible: boolean;
   onClose: () => void;
-  tableId: number;  // ID local (mock) - número simples como 1, 2, 3
-  table_id?: string; // ID do MongoDB (opcional) - quando vier do backend
+  tableId: number;
+  table_id?: string;
   onConfirmOrder?: (items: OrderItem[]) => void;
 };
 
@@ -79,7 +78,6 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Buscar produtos do cardápio ao abrir o modal
   useEffect(() => {
     if (visible) {
       loadProducts();
@@ -90,13 +88,11 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
     try {
       setLoading(true);
       
-      // Buscar cardápio real do backend
       const data = await cardapioAPI.listar();
       const produtosDisponiveis = data.filter((item: CardapioItem) => item.disponivel);
       
       if (produtosDisponiveis.length === 0) {
         Alert.alert('Aviso', 'Nenhum produto disponível no cardápio');
-        // Usar mock como fallback se não houver produtos
         setProducts(MOCK_CARDAPIO);
       } else {
         setProducts(produtosDisponiveis);
@@ -108,7 +104,6 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
         'Erro ao carregar cardápio', 
         'Usando cardápio de exemplo. Verifique se o backend está rodando.'
       );
-      // Usar mock como fallback em caso de erro
       setProducts(MOCK_CARDAPIO);
     } finally {
       setLoading(false);
@@ -143,7 +138,6 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
       return;
     }
 
-    // Se não tiver table_id, mostrar aviso mas permitir continuar com tableId
     const mesaId = table_id || tableId.toString();
     
     if (!table_id) {
@@ -153,14 +147,12 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
     try {
       setSubmitting(true);
       
-      // Formatar itens para o backend
       const itensFormatados = orderItems.map(item => ({
         item: item.item._id,
         quantidade: item.quantidade,
         observacao: item.observacao || ''
       }));
 
-      // Enviar pedido para o backend
       const response = await pedidoAPI.criar(mesaId, {
         itens: itensFormatados,
         observacoes_gerais: ''
@@ -168,10 +160,8 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
 
       Alert.alert('Sucesso', response.message);
       
-      // Chamar callback se existir
       onConfirmOrder?.(orderItems);
       
-      // Limpar e fechar
       setOrderItems([]);
       setSelectedProduct(null);
       setQuantity(1);
@@ -195,7 +185,7 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
             <ActivityIndicator size="large" color="#0ea5e9" style={{ marginVertical: 20 }} />
           ) : (
             <>
-              {/* Seletor de Produto */}
+
               <Pressable 
                 style={styles.productSelector}
                 onPress={() => setIsProductListVisible(!isProductListVisible)}
@@ -205,7 +195,7 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
                 </Text>
               </Pressable>
 
-              {/* Lista de Produtos */}
+
               {isProductListVisible && (
                 <ScrollView style={styles.productList}>
                   {products.map(product => (
@@ -229,7 +219,7 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
                 </ScrollView>
               )}
 
-              {/* Controle de Quantidade */}
+
               {selectedProduct && (
                 <View style={styles.quantityControl}>
                   <TouchableOpacity 
@@ -254,7 +244,7 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
                 </View>
               )}
 
-              {/* Lista de Itens do Pedido */}
+
               <ScrollView style={styles.orderList}>
                 {orderItems.map((item, index) => (
                   <View key={index} style={styles.orderItem}>
@@ -273,7 +263,7 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
                 ))}
               </ScrollView>
 
-              {/* Total e Botões */}
+
               <View style={styles.footer}>
                 <Text style={styles.total}>
                   Total: R$ {getTotalPrice().toFixed(2)}

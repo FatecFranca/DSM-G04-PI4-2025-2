@@ -23,7 +23,6 @@ export function useTables() {
 
     fetchTables();
 
-    // Listener para atualização de mesa via WebSocket
     const handleMesaAtualizada = (
       mesaAtualizada: Partial<Mesa> & { _id: string }
     ) => {
@@ -37,10 +36,8 @@ export function useTables() {
       );
     };
 
-    // Registrar listener
     websocketService.on("mesa_atualizada", handleMesaAtualizada);
 
-    // Cleanup: remover listener quando componente desmontar
     return () => {
       websocketService.off("mesa_atualizada", handleMesaAtualizada);
     };

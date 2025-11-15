@@ -26,7 +26,6 @@ import { useMesaStore } from "@/src/stores/mesaStore";
 import { usePedidoProntoStore } from "@/src/stores/pedidoProntoStore";
 
 export default function Index() {
-  // Usar stores globais
   const mesas = useMesaStore((state) => state.mesas);
   const chamados = useChamadoStore((state) => state.chamados);
 
@@ -35,8 +34,7 @@ export default function Index() {
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [isChamadosVisible, setIsChamadosVisible] = useState(false);
   const [isPedidosProntosVisible, setIsPedidosProntosVisible] = useState(false);
-  
-  // Store de pedidos prontos
+
   const pedidosProntos = usePedidoProntoStore((state) => state.pedidosProntos);
   const carregarPedidosProntos = usePedidoProntoStore((state) => state.carregarPedidosProntos);
   const initializeListeners = usePedidoProntoStore((state) => state.initializeListeners);
@@ -45,7 +43,6 @@ export default function Index() {
   }>({});
 
   useEffect(() => {
-    // Só carrega se o store estiver vazio (primeira vez)
     if (mesas.length === 0) {
       carregarMesas();
     } else {
@@ -71,7 +68,6 @@ export default function Index() {
         return;
       }
 
-      // Ordena as mesas por número
       const mesasOrdenadas = [...mesasData].sort((a, b) => a.numero - b.numero);
       useMesaStore.getState().setMesas(mesasOrdenadas);
     } catch (error) {
@@ -88,25 +84,21 @@ export default function Index() {
     }
   }
 
-  // Removido getTempoDecorrido pois agora usamos o hook useElapsedTime
-
-  // Retorna a cor de fundo baseada no status da mesa
   function getStatusColor(status: Mesa["status"]) {
     switch (status) {
       case "livre":
-        return "#22c55e"; // verde
+        return "#22c55e";
       case "ocupada":
-        return "#eab308"; // amarelo
+        return "#eab308";
       case "aguardando_atendimento":
-        return "#ef4444"; // vermelho
+        return "#ef4444";
       case "aguardando_pagamento":
-        return "#3b82f6"; // azul
+        return "#3b82f6";
       default:
-        return "#6b7280"; // cinza
+        return "#6b7280";
     }
   }
 
-  // Retorna o texto do status formatado
   function getStatusText(status: Mesa["status"]) {
     switch (status) {
       case "livre":
@@ -150,12 +142,10 @@ export default function Index() {
   const handleAtenderChamado = async (chamadoId: string) => {
     try {
       await chamadoAPI.atender(chamadoId);
-      // Atualiza apenas as mesas - chamados são atualizados via WebSocket
       await carregarMesas();
       setIsChamadosVisible(false);
     } catch (error) {
       console.error("Erro ao atender chamado:", error);
-      // TODO: Mostrar mensagem de erro para o usuário
     }
   };
 
@@ -163,9 +153,8 @@ export default function Index() {
     <ThemedView style={styles.container}>
       <Header onProfilePress={() => setIsProfileVisible(true)} />
 
-      {/* Botões Flutuantes */}
       <View style={styles.floatingButtonsContainer}>
-        {/* Botão de Pedidos Prontos */}
+
         <TouchableOpacity
           style={styles.pedidosProntosButton}
           onPress={() => setIsPedidosProntosVisible(true)}
@@ -180,7 +169,7 @@ export default function Index() {
           )}
         </TouchableOpacity>
 
-        {/* Botão de Chamados */}
+
         <TouchableOpacity
           style={[
             styles.chamadosButton,
@@ -197,7 +186,7 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal de Chamados */}
+
       <ChamadosModal
         visible={isChamadosVisible}
         onClose={() => setIsChamadosVisible(false)}
@@ -206,7 +195,7 @@ export default function Index() {
         onAtenderChamado={handleAtenderChamado}
       />
 
-      {/* Modal de Pedidos Prontos */}
+
       <PedidosProntosModal
         visible={isPedidosProntosVisible}
         onClose={() => setIsPedidosProntosVisible(false)}
@@ -230,7 +219,6 @@ export default function Index() {
             </View>
 
             <View style={styles.botoesContainer}>
-              {/* Botão Ver Detalhes - aparece se tiver conta ativa ou mesa ocupada */}
               {(mesa.conta_ativa ||
                 mesa.status === "ocupada" ||
                 mesa.status === "aguardando_pagamento") && (
@@ -244,7 +232,6 @@ export default function Index() {
                 </TouchableOpacity>
               )}
 
-              {/* Botão Abrir Conta - só aparece se a mesa estiver livre */}
               {mesa.status === "livre" && (
                 <TouchableOpacity
                   style={[
@@ -260,7 +247,7 @@ export default function Index() {
                         [mesa._id]: true,
                       }));
                       await contaAPI.abrir(mesa._id);
-                      await carregarMesas(); // Atualiza o status da mesa
+                      await carregarMesas();
                     } catch (error) {
                       console.error("Erro ao abrir conta:", error);
                       const mensagem =
@@ -384,10 +371,9 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   chamadosBadgeEmpty: {
-    backgroundColor: "#9ca3af", // Cinza quando não tem chamados
+    backgroundColor: "#9ca3af",
   },
 
-  // Outros estilos
   errorContainer: {
     flex: 1,
     justifyContent: "center",
@@ -421,17 +407,17 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   mesaContainer: {
-    width: "50%", // Divide em duas colunas iguais
-    padding: 8, // Adiciona espaço interno
-    alignItems: "stretch", // Garante que o conteúdo ocupe toda a largura
+    width: "50%",
+    padding: 8,
+    alignItems: "stretch",
   },
   mesaStatus: {
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
     justifyContent: "center",
-    flex: 1, // Faz o container ocupar todo o espaço disponível
-    minHeight: 100, // Altura mínima para o card
+    flex: 1,
+    minHeight: 100,
   },
   mesaNumero: {
     color: "#fff",
@@ -454,10 +440,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   botaoDetalhes: {
-    backgroundColor: "#0ea5e9", // azul
+    backgroundColor: "#0ea5e9",
   },
   botaoAbrirConta: {
-    backgroundColor: "#22c55e", // verde
+    backgroundColor: "#22c55e",
   },
   botaoText: {
     color: "#fff",

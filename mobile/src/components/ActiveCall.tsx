@@ -7,7 +7,7 @@ interface ActiveCallProps {
   call: Call;
   onFinishCall: () => void;
   onMakeOrder: () => void;
-  onRegisterPayment?: () => void; // Nova prop para pagamento
+  onRegisterPayment?: () => void;
 }
 
 export default function ActiveCall({ call, onFinishCall, onMakeOrder, onRegisterPayment }: ActiveCallProps) {
@@ -18,12 +18,10 @@ export default function ActiveCall({ call, onFinishCall, onMakeOrder, onRegister
   React.useEffect(() => {
     if (!call) return;
     
-    // Calcular tempo inicial (em segundos desde que o chamado começou)
     const startTimeMs = new Date(call.timestamp).getTime();
     const initialElapsed = Math.floor((Date.now() - startTimeMs) / 1000);
     setElapsedTime(initialElapsed);
     
-    // Atualizar timer a cada segundo
     const interval = setInterval(() => {
       setElapsedTime(prev => prev + 1);
     }, 1000);
@@ -35,7 +33,6 @@ export default function ActiveCall({ call, onFinishCall, onMakeOrder, onRegister
 
   const formattedTime = new Date(call.timestamp).toLocaleTimeString().slice(0, 5);
   
-  // Formatar o tempo decorrido
   const minutes = Math.floor(elapsedTime / 60);
   const seconds = elapsedTime % 60;
   const formattedElapsedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -100,7 +97,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
-    marginTop: 0, // Garante que não há margem superior
+    marginTop: 0,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: {

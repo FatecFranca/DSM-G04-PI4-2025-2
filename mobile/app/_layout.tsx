@@ -20,7 +20,6 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Tenta recuperar os dados do usuário ao iniciar o app
     const restoreUser = async () => {
       try {
         const [token, refreshToken, userData] = await Promise.all([
@@ -52,10 +51,8 @@ export default function RootLayout() {
     const inCozinhaGroup = segments[0] === "cozinha";
 
     if (!user && !inAuthGroup) {
-      // Não autenticado e não está no login -> redireciona para login
       router.replace("/login");
     } else if (user) {
-      // Autenticado - redireciona baseado no cargo
       if (user.cargo === "cozinheiro" && !inCozinhaGroup) {
         router.replace("/cozinha");
       } else if (user.cargo !== "cozinheiro" && inCozinhaGroup) {
@@ -65,7 +62,7 @@ export default function RootLayout() {
   }, [user, segments, isReady]);
 
   if (!isReady) {
-    return null; // Ou um loading spinner
+    return null;
   }
 
   return (

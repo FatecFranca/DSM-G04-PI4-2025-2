@@ -28,22 +28,17 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      // Chama o endpoint /users/login
       const data = await userAPI.login(email, credencial);
 
-      // data deve conter: accessToken, refreshToken e user
       if (data && data.accessToken && data.refreshToken && data.user) {
-        // Usa setAuth para salvar tudo de uma vez
         await useUserStore
           .getState()
           .setAuth(data.user, data.accessToken, data.refreshToken);
 
-        // Redireciona baseado no cargo
         setTimeout(() => {
           if (data.user.cargo === 'cozinheiro') {
             router.replace("/cozinha");
           } else {
-            // garcom, gerente, etc vão para a tela principal
             router.replace("/");
           }
         }, 100);

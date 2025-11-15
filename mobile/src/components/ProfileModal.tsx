@@ -29,23 +29,19 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
         text: "Sair",
         style: "destructive",
         onPress: async () => {
-          onClose(); // Fecha o modal primeiro
+          onClose();
 
           try {
-            // Tenta invalidar o refresh token no backend
             if (refreshToken) {
               const { userAPI } = await import("@/src/services/api");
               await userAPI.logout(refreshToken);
             }
           } catch (error) {
             console.error("Erro ao fazer logout no backend:", error);
-            // Continua com o logout local mesmo se falhar
           }
 
-          // Faz o logout local
           await logout();
 
-          // Redireciona para login
           setTimeout(() => {
             router.replace("/login");
           }, 100);
@@ -108,7 +104,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 16, // Garante espaço na parte inferior
+    paddingBottom: 16,
   },
   header: {
     flexDirection: "row",
@@ -131,7 +127,7 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: "center",
-    marginBottom: 32, // Aumentado para dar mais espaço entre o perfil e o botão
+    marginBottom: 32,
   },
   userIconContainer: {
     width: 120,
@@ -167,7 +163,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#fee2e2",
     borderRadius: 12,
-    marginHorizontal: 16, // Adiciona margem lateral
+    marginHorizontal: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

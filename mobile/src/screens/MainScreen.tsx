@@ -23,36 +23,32 @@ export default function MainScreen() {
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   
-  // Dados da conta ativa
   const [contaAtual, setContaAtual] = useState({
     contaId: '',
     valorTotal: 0,
     valorPago: 0,
   });
 
-  // Store de pedidos prontos
   const pedidosProntos = usePedidoProntoStore((state) => state.pedidosProntos);
   const carregarPedidosProntos = usePedidoProntoStore((state) => state.carregarPedidosProntos);
   const initializeListeners = usePedidoProntoStore((state) => state.initializeListeners);
 
-  // Inicializar listeners e carregar pedidos prontos
+
   useEffect(() => {
     console.log('🔄 Inicializando pedidos prontos...');
     carregarPedidosProntos();
     initializeListeners();
   }, []);
 
-  // Debug pedidos prontos
   useEffect(() => {
     console.log('📋 Pedidos prontos atualizados:', pedidosProntos.length, pedidosProntos);
   }, [pedidosProntos]);
 
-  // Debug: monitorar mudanças no estado do modal
   useEffect(() => {
     console.log('🎯 isPaymentModalVisible mudou para:', isPaymentModalVisible);
   }, [isPaymentModalVisible]);
 
-  // Função para buscar dados da conta
+
   const carregarContaAtiva = async (mesaId: string) => {
     try {
       console.log('🔍 Carregando conta para mesa:', mesaId);
@@ -77,31 +73,27 @@ export default function MainScreen() {
     }
   };
 
-  // Função para abrir modal de pagamento
+
   const handleOpenPaymentModal = async () => {
     console.log('💳 Tentando abrir modal de pagamento');
     console.log('📊 Conta atual:', contaAtual);
     console.log('📞 Active call:', activeCall);
     
-    // Se não tem conta carregada, tenta carregar antes de abrir
     if (!contaAtual.contaId && activeCall?.table_id) {
       console.warn('⚠️ Conta não carregada! Carregando agora...');
       await carregarContaAtiva(activeCall.table_id);
     }
     
-    // Abre o modal independente de ter conta ou não
     console.log('✅ Abrindo modal de pagamento');
     setIsPaymentModalVisible(true);
   };
 
-  // Buscar dados reais do backend
   const {
     tables: apiTables,
     isLoading: loadingTables,
     error: errorTables,
   } = useTables();
 
-  // Usar store diretamente ao invés do hook
   const chamados = useChamadoStore((state) => state.chamados);
   const isLoading = useChamadoStore((state) => state.isLoading);
   const error = useChamadoStore((state) => state.error);
@@ -154,7 +146,7 @@ export default function MainScreen() {
         status: "pending" as Call["status"],
       };
     });
-  }, [chamados]); // Re-calcula sempre que chamados mudar
+  }, [chamados]);
 
   const handleTableUpdate = (updatedTable: Table) => {
     setTables((prev) =>
@@ -169,15 +161,13 @@ export default function MainScreen() {
     const updatedCall = calls.find((c) => c.id === callId);
     if (!updatedCall) return;
 
-    // Não permite aceitar novo chamado se já houver um em andamento
+
     if (status === "in-progress" && activeCall) return;
 
     if (status === "in-progress") {
       try {
-        // Aceitar chamado no backend
         await chamadoAPI.atender(callId);
 
-        // Atualiza o timestamp para o momento em que o chamado foi aceito
         const updatedCallWithTime = {
           ...updatedCall,
           timestamp: new Date().toISOString(),
@@ -185,12 +175,10 @@ export default function MainScreen() {
         };
         setActiveCall(updatedCallWithTime);
 
-        // Carregar conta ativa da mesa
         if (updatedCall.table_id) {
           await carregarContaAtiva(updatedCall.table_id);
         }
 
-        // Feedback tátil
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       } catch (error) {
         console.error("Erro ao aceitar chamado:", error);
@@ -198,7 +186,6 @@ export default function MainScreen() {
     } else if (status === "completed") {
       setActiveCall(null);
 
-      // Feedback tátil
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
@@ -245,9 +232,9 @@ export default function MainScreen() {
           >
             <TableMap
               tables={tables}
-              disabled={!!activeCall} // Desabilita interações quando há chamado ativo
+              disabled={!!activeCall}
               onTablePress={(tableId) => {
-                if (activeCall) return; // Não permite aceitar novo chamado se já houver um ativo
+                if (activeCall) return;
                 const call = calls.find(
                   (c) => c.tableId === tableId && c.status === "pending"
                 );
@@ -267,7 +254,6 @@ export default function MainScreen() {
         </View>
       </View>
 
-      {/* Botão Flutuante de Pedidos Prontos - SEMPRE VISÍVEL */}
       <TouchableOpacity
         activeOpacity={0.7}
         style={styles.pedidosProntosButton}
@@ -298,10 +284,9 @@ export default function MainScreen() {
         visible={isOrderModalVisible}
         onClose={() => setIsOrderModalVisible(false)}
         tableId={activeCall?.tableId || 0}
-        table_id={activeCall?.table_id} // ID do MongoDB (opcional)
+        table_id={activeCall?.table_id}
         onConfirmOrder={(items) => {
           console.log("Pedido confirmado:", items);
-          // Aqui você pode implementar a lógica para salvar o pedido
         }}
       />
 
@@ -314,12 +299,10 @@ export default function MainScreen() {
         onPaymentSuccess={async (contaFechada) => {
           setIsPaymentModalVisible(false);
           
-          // Recarregar dados da conta
           if (activeCall?.table_id) {
             await carregarContaAtiva(activeCall.table_id);
           }
-          
-          // Se a conta foi fechada, limpar o chamado ativo
+
           if (contaFechada) {
             console.log('Conta fechada! Mesa liberada.');
             setActiveCall(null);

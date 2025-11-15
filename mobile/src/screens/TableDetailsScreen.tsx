@@ -34,7 +34,6 @@ export default function TableDetailsScreen({
   useEffect(() => {
     carregarConta();
 
-    // Listener para nova conta via WebSocket
     const handleNovaConta = (novaConta: Conta) => {
       console.log("📡 Nova conta via WebSocket:", novaConta);
       if (novaConta.mesa === mesaId) {
@@ -42,12 +41,10 @@ export default function TableDetailsScreen({
       }
     };
 
-    // Listener para atualização de conta via WebSocket
     const handleContaAtualizada = (
       contaAtualizada: Partial<Conta> & { _id: string }
     ) => {
       console.log("📡 Conta atualizada via WebSocket:", contaAtualizada);
-      // Atualiza a conta se for a mesma que está sendo exibida
       setConta((prevConta) => {
         if (prevConta && prevConta._id === contaAtualizada._id) {
           return { ...prevConta, ...contaAtualizada };
@@ -56,16 +53,14 @@ export default function TableDetailsScreen({
       });
     };
 
-    // Registrar listeners
     websocketService.on("nova_conta", handleNovaConta);
     websocketService.on("conta_atualizada", handleContaAtualizada);
 
-    // Cleanup: remover listeners quando componente desmontar
     return () => {
       websocketService.off("nova_conta", handleNovaConta);
       websocketService.off("conta_atualizada", handleContaAtualizada);
     };
-  }, [mesaId]); // Removido 'conta' das dependências para evitar loop infinito
+  }, [mesaId]); 
 
   const carregarConta = async () => {
     try {
@@ -78,11 +73,9 @@ export default function TableDetailsScreen({
     } catch (error: any) {
       console.error("Erro ao carregar conta:", error);
       
-      // Se for erro 401 (não autorizado), pode ser token expirado
       if (error.response?.status === 401) {
         setError("Sessão expirada. Por favor, faça login novamente.");
       } else if (error.response?.status === 404) {
-        // 404 é normal quando não tem conta ativa
         setConta(null);
       } else {
         setError("Erro ao carregar detalhes da conta");
@@ -132,7 +125,6 @@ export default function TableDetailsScreen({
     );
   };
 
-  // Mostre o loading antes de qualquer outra verificação
   if (loading) {
     return (
       <ThemedView style={styles.container}>
@@ -141,7 +133,6 @@ export default function TableDetailsScreen({
     );
   }
 
-  // Se tiver erro, mostra a mensagem de erro
   if (error) {
     return (
       <ThemedView style={styles.container}>
@@ -180,7 +171,6 @@ export default function TableDetailsScreen({
     );
   }
 
-  // Se não encontrou a conta, mostra mensagem específica
   if (!conta) {
     return (
       <ThemedView style={styles.container}>
@@ -197,12 +187,10 @@ export default function TableDetailsScreen({
     );
   }
 
-  // Calcula o saldo devedor
   const saldoDevedor = (conta.valor_total || 0) - (conta.valor_pago || 0);
 
   return (
     <ThemedView style={styles.container}>
-      {/* Modal de Pedido */}
       <OrderModal
         visible={isOrderModalVisible}
         onClose={() => setIsOrderModalVisible(false)}
@@ -214,7 +202,6 @@ export default function TableDetailsScreen({
         }}
       />
 
-      {/* Modal de Pagamento */}
       <PaymentModal
         visible={isPaymentModalVisible}
         onClose={() => setIsPaymentModalVisible(false)}
@@ -232,7 +219,6 @@ export default function TableDetailsScreen({
         }}
       />
 
-      {/* Cabeçalho */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -246,7 +232,6 @@ export default function TableDetailsScreen({
         <ThemedText style={styles.subtitulo}>Conta Ativa</ThemedText>
       </View>
 
-      {/* Resumo Financeiro */}
       <View style={styles.resumo}>
         <View style={styles.kpiContainer}>
           <ThemedText style={styles.kpiLabel}>Valor Total</ThemedText>
@@ -275,7 +260,6 @@ export default function TableDetailsScreen({
         </View>
       </View>
 
-      {/* Lista de Pedidos */}
       <ScrollView style={styles.extrato}>
         {conta.pedidos?.map((pedido) =>
           pedido.itens.map((item, index) => (
@@ -301,7 +285,6 @@ export default function TableDetailsScreen({
         )}
       </ScrollView>
 
-      {/* Botões de Ação */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.button, styles.buttonPrimary]}
@@ -310,7 +293,6 @@ export default function TableDetailsScreen({
           <ThemedText style={styles.buttonText}>Adicionar Pedido</ThemedText>
         </TouchableOpacity>
 
-        {/* Se valor_total > 0: botão de registrar pagamento */}
         {(conta.valor_total || 0) > 0 ? (
           <TouchableOpacity
             style={[styles.button, styles.buttonSecondary]}
@@ -319,7 +301,6 @@ export default function TableDetailsScreen({
             <ThemedText style={styles.buttonText}>Registrar Pagamento</ThemedText>
           </TouchableOpacity>
         ) : (
-          /* Se valor_total = 0: botão de cancelar conta */
           <TouchableOpacity
             style={[styles.button, styles.buttonDanger]}
             onPress={handleCancelarConta}
@@ -337,7 +318,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    paddingTop: 48, // Espaço para a status bar
+    paddingTop: 48,
   },
   header: {
     marginBottom: 24,
@@ -349,8 +330,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
-    padding: 8, // Área de toque maior
-    marginLeft: -8, // Compensa o padding para manter alinhamento
+    padding: 8,
+    marginLeft: -8,
   },
   titulo: {
     fontSize: 32,
@@ -426,13 +407,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonPrimary: {
-    backgroundColor: "#0ea5e9", // azul
+    backgroundColor: "#0ea5e9",
   },
   buttonSecondary: {
-    backgroundColor: "#22c55e", // verde
+    backgroundColor: "#22c55e",
   },
   buttonDanger: {
-    backgroundColor: "#ef4444", // vermelho
+    backgroundColor: "#ef4444",
   },
   buttonText: {
     color: "#fff",

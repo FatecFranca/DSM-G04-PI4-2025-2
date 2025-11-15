@@ -14,11 +14,9 @@ const CallList: React.FC<CallListProps> = ({
   disabled,
   onCallStatusUpdate,
 }) => {
-  // Log para ver quando o componente re-renderiza
   console.log("🎨 CallList renderizado com", calls.length, "chamados");
 
   const sortedCalls = [...calls].sort((a, b) => {
-    // Ordena pelo timestamp mais antigo primeiro (maior tempo de espera)
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
   });
 
@@ -31,7 +29,7 @@ const CallList: React.FC<CallListProps> = ({
           <CallItem
             call={item}
             disabled={disabled}
-            isOldest={index === 0} // Marca o primeiro item como o mais antigo
+            isOldest={index === 0}
             onStatusUpdate={(status: Call["status"]) =>
               onCallStatusUpdate(item.id, status)
             }

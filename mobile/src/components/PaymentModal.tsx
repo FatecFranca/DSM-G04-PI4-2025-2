@@ -36,7 +36,6 @@ export default function PaymentModal({
   const [metodoSelecionado, setMetodoSelecionado] = useState<MetodoPagamento | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Arredondar para evitar problemas de precisão decimal
   const valorRestante = Math.round((valorTotal - valorPago) * 100) / 100;
 
   useEffect(() => {
@@ -49,7 +48,6 @@ export default function PaymentModal({
     });
     
     if (visible) {
-      // Sugerir o valor restante como padrão
       setValorPagamento(valorRestante.toFixed(2));
       setMetodoSelecionado(null);
     }
@@ -84,7 +82,6 @@ export default function PaymentModal({
       return;
     }
 
-    // Usar arredondamento para 2 casas decimais na comparação
     const valorArredondado = Math.round(valor * 100) / 100;
     const valorRestanteArredondado = Math.round(valorRestante * 100) / 100;
 

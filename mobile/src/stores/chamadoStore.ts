@@ -49,18 +49,14 @@ export const useChamadoStore = create<ChamadoState>((set, get) => ({
   setError: (error) => set({ error }),
 
   initializeListeners: () => {
-    // Listener para novo chamado
     const handleNovoChamado = (novoChamado: Chamado) => {
-      // Vibrar o dispositivo
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       get().addChamado(novoChamado);
     };
 
-    // Listener para atualização de chamado
     const handleChamadoAtualizado = (
       chamadoAtualizado: Partial<Chamado> & { _id: string }
     ) => {
-      // Se foi atendido ou resolvido, remove da lista
       if (
         chamadoAtualizado.status === "atendido" ||
         chamadoAtualizado.status === "resolvido"
