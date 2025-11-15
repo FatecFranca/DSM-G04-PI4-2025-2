@@ -48,6 +48,11 @@ export const websocketService: WebSocketService = {
 
     socket.on("connect_error", (error) => {
       console.error("⚠️ Erro de conexão WebSocket:", error.message);
+      
+      // Se for erro de autenticação, não tenta reconectar
+      if (error.message.includes('Token inválido') || error.message.includes('jwt')) {
+        socket?.disconnect();
+      }
     });
 
     socket.on("error", (error) => {

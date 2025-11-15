@@ -242,7 +242,8 @@ module.exports = class PedidoController {
     const empresaId = req.user.empresa;
 
     try {
-      const pedidosParaCozinha = await Pedido.find({
+      
+      const pedidosAtivos = await Pedido.find({
         empresa: empresaId,
         status: { $in: ["enviado_cozinha", "preparando"] },
       })
@@ -250,7 +251,20 @@ module.exports = class PedidoController {
         .populate("mesa", "numero")
         .populate("itens.item", "nome");
 
-      res.status(200).json({ pedidos: pedidosParaCozinha });
+      
+      const pedidosProntos = await Pedido.find({
+        empresa: empresaId,
+        status: "pronto",
+      })
+        .sort({ updatedAt: -1 })
+        .limit(4)
+        .populate("mesa", "numero")
+        .populate("itens.item", "nome");
+
+     
+      const todosPedidos = [...pedidosAtivos, ...pedidosProntos];
+
+      res.status(200).json({ pedidos: todosPedidos });
     } catch (error) {
       res.status(500).json({
         message: "Erro ao buscar pedidos da cozinha.",

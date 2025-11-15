@@ -54,28 +54,34 @@ export const useUserStore = create<UserState>((set) => ({
     // Conecta ao WebSocket
     websocketService.connect(accessToken);
 
-    // Inicializa listeners globais de chamados
-    useChamadoStore.getState().initializeListeners();
+    // Inicializa listeners globais de chamados (apenas para garçom/gerente)
+    if (user.cargo === 'garcom' || user.cargo === 'gerente') {
+      useChamadoStore.getState().initializeListeners();
+    }
 
     // Inicializa listener de mesa_atualizada
     websocketService.on("mesa_atualizada", (mesaAtualizada) => {
       useMesaStore.getState().updateMesa(mesaAtualizada._id, mesaAtualizada);
     });
 
-    // Carrega chamados iniciais
-    try {
-      const chamados = await chamadoAPI.listar();
-      useChamadoStore.getState().setChamados(chamados);
-    } catch (error) {
-      console.error("❌ Erro ao carregar chamados:", error);
+    // Carrega chamados iniciais (apenas para garçom/gerente)
+    if (user.cargo === 'garcom' || user.cargo === 'gerente') {
+      try {
+        const chamados = await chamadoAPI.listar();
+        useChamadoStore.getState().setChamados(chamados);
+      } catch (error) {
+        console.error("❌ Erro ao carregar chamados:", error);
+      }
     }
 
-    // Carrega mesas iniciais
-    try {
-      const mesas = await mesaAPI.listar();
-      useMesaStore.getState().setMesas(mesas);
-    } catch (error) {
-      console.error("❌ Erro ao carregar mesas:", error);
+    // Carrega mesas iniciais (apenas para garçom/gerente)
+    if (user.cargo === 'garcom' || user.cargo === 'gerente') {
+      try {
+        const mesas = await mesaAPI.listar();
+        useMesaStore.getState().setMesas(mesas);
+      } catch (error) {
+        console.error("❌ Erro ao carregar mesas:", error);
+      }
     }
 
     // Atualiza o estado

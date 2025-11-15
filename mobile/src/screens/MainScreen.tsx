@@ -1,13 +1,16 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Table, Call, TableStatus } from "../types";
 import TableMap from "../features/tables/TableMap";
 import { useTables } from "../features/tables/useTables";
 import { useChamadoStore } from "../stores/chamadoStore";
+import { usePedidoProntoStore } from "../stores/pedidoProntoStore";
 import CallList from "../features/calls/CallList";
 import * as Haptics from "expo-haptics";
 import Header from "../components/Header";
 import ProfileModal from "../components/ProfileModal";
+import PedidosProntosModal from "../components/PedidosProntosModal";
 import ActiveCall from "../components/ActiveCall";
 import OrderModal from "../components/OrderModal";
 import PaymentModal from "../components/PaymentModal";
@@ -15,6 +18,7 @@ import { chamadoAPI, contaAPI } from "../services/api";
 
 export default function MainScreen() {
   const [isProfileVisible, setIsProfileVisible] = useState(false);
+  const [isPedidosProntosVisible, setIsPedidosProntosVisible] = useState(false);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
@@ -25,6 +29,23 @@ export default function MainScreen() {
     valorTotal: 0,
     valorPago: 0,
   });
+
+  // Store de pedidos prontos
+  const pedidosProntos = usePedidoProntoStore((state) => state.pedidosProntos);
+  const carregarPedidosProntos = usePedidoProntoStore((state) => state.carregarPedidosProntos);
+  const initializeListeners = usePedidoProntoStore((state) => state.initializeListeners);
+
+  // Inicializar listeners e carregar pedidos prontos
+  useEffect(() => {
+    console.log('🔄 Inicializando pedidos prontos...');
+    carregarPedidosProntos();
+    initializeListeners();
+  }, []);
+
+  // Debug pedidos prontos
+  useEffect(() => {
+    console.log('📋 Pedidos prontos atualizados:', pedidosProntos.length, pedidosProntos);
+  }, [pedidosProntos]);
 
   // Debug: monitorar mudanças no estado do modal
   useEffect(() => {
@@ -203,6 +224,7 @@ export default function MainScreen() {
   return (
     <View style={styles.container}>
       <Header onProfilePress={() => setIsProfileVisible(true)} />
+      
       <View style={styles.content}>
         <View style={styles.mapSection}>
           {activeCall && (
@@ -244,9 +266,33 @@ export default function MainScreen() {
           />
         </View>
       </View>
+
+      {/* Botão Flutuante de Pedidos Prontos - SEMPRE VISÍVEL */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.pedidosProntosButton}
+        onPress={() => {
+          console.log('🔔 Botão clicado! Pedidos prontos:', pedidosProntos.length);
+          setIsPedidosProntosVisible(true);
+        }}
+      >
+        <Ionicons name="checkmark-done" size={26} color="#fff" />
+        {pedidosProntos.length > 0 && (
+          <View style={styles.pedidosBadge}>
+            <Text style={styles.pedidosBadgeText}>
+              {pedidosProntos.length > 9 ? '9+' : pedidosProntos.length}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
       <ProfileModal
         visible={isProfileVisible}
         onClose={() => setIsProfileVisible(false)}
+      />
+      <PedidosProntosModal
+        visible={isPedidosProntosVisible}
+        onClose={() => setIsPedidosProntosVisible(false)}
       />
       <OrderModal
         visible={isOrderModalVisible}
@@ -340,5 +386,44 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  pedidosProntosButton: {
+    position: "absolute",
+    bottom: 80,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#10b981",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
+    zIndex: 999,
+  },
+  pedidosBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#ef4444",
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  pedidosBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
 });

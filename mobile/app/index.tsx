@@ -18,10 +18,12 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ChamadosModal from "@/src/components/ChamadosModal";
+import PedidosProntosModal from "@/src/components/PedidosProntosModal";
 import Header from "@/src/components/Header";
 import ProfileModal from "@/src/components/ProfileModal";
 import { useChamadoStore } from "@/src/stores/chamadoStore";
 import { useMesaStore } from "@/src/stores/mesaStore";
+import { usePedidoProntoStore } from "@/src/stores/pedidoProntoStore";
 
 export default function Index() {
   // Usar stores globais
@@ -32,6 +34,12 @@ export default function Index() {
   const [error, setError] = useState<string | null>(null);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [isChamadosVisible, setIsChamadosVisible] = useState(false);
+  const [isPedidosProntosVisible, setIsPedidosProntosVisible] = useState(false);
+  
+  // Store de pedidos prontos
+  const pedidosProntos = usePedidoProntoStore((state) => state.pedidosProntos);
+  const carregarPedidosProntos = usePedidoProntoStore((state) => state.carregarPedidosProntos);
+  const initializeListeners = usePedidoProntoStore((state) => state.initializeListeners);
   const [mesasEmAbertura, setMesasEmAbertura] = useState<{
     [key: string]: boolean;
   }>({});
@@ -43,6 +51,11 @@ export default function Index() {
     } else {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    carregarPedidosProntos();
+    initializeListeners();
   }, []);
 
   async function carregarMesas() {
@@ -150,21 +163,39 @@ export default function Index() {
     <ThemedView style={styles.container}>
       <Header onProfilePress={() => setIsProfileVisible(true)} />
 
-      {/* Botão Flutuante de Chamados */}
-      <TouchableOpacity
-        style={[
-          styles.chamadosButton,
-          chamadosAbertos.length === 0 && styles.chamadosBadgeEmpty,
-        ]}
-        onPress={() => setIsChamadosVisible(true)}
-      >
-        <Ionicons name="notifications" size={24} color="#fff" />
-        <View style={styles.chamadosBadge}>
-          <ThemedText style={styles.chamadosBadgeText}>
-            {chamadosAbertos.length}
-          </ThemedText>
-        </View>
-      </TouchableOpacity>
+      {/* Botões Flutuantes */}
+      <View style={styles.floatingButtonsContainer}>
+        {/* Botão de Pedidos Prontos */}
+        <TouchableOpacity
+          style={styles.pedidosProntosButton}
+          onPress={() => setIsPedidosProntosVisible(true)}
+        >
+          <Ionicons name="checkmark-done" size={24} color="#fff" />
+          {pedidosProntos.length > 0 && (
+            <View style={styles.pedidosBadge}>
+              <ThemedText style={styles.pedidosBadgeText}>
+                {pedidosProntos.length}
+              </ThemedText>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Botão de Chamados */}
+        <TouchableOpacity
+          style={[
+            styles.chamadosButton,
+            chamadosAbertos.length === 0 && styles.chamadosBadgeEmpty,
+          ]}
+          onPress={() => setIsChamadosVisible(true)}
+        >
+          <Ionicons name="notifications" size={24} color="#fff" />
+          <View style={styles.chamadosBadge}>
+            <ThemedText style={styles.chamadosBadgeText}>
+              {chamadosAbertos.length}
+            </ThemedText>
+          </View>
+        </TouchableOpacity>
+      </View>
 
       {/* Modal de Chamados */}
       <ChamadosModal
@@ -173,6 +204,12 @@ export default function Index() {
         chamados={chamados}
         mesas={mesas}
         onAtenderChamado={handleAtenderChamado}
+      />
+
+      {/* Modal de Pedidos Prontos */}
+      <PedidosProntosModal
+        visible={isPedidosProntosVisible}
+        onClose={() => setIsPedidosProntosVisible(false)}
       />
 
       <ScrollView contentContainerStyle={styles.mesasGrid}>
@@ -261,11 +298,55 @@ const styles = StyleSheet.create({
   botaoDesabilitado: {
     opacity: 0.6,
   },
-  chamadosButton: {
+  floatingButtonsContainer: {
+    flexDirection: "row",
     alignSelf: "flex-end",
     marginTop: 8,
     marginRight: 16,
     marginBottom: 8,
+    gap: 12,
+  },
+  pedidosProntosButton: {
+    backgroundColor: "#10b981",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pedidosBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#ef4444",
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    paddingHorizontal: 4,
+  },
+  pedidosBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "center",
+    lineHeight: 14,
+  },
+  chamadosButton: {
+    marginTop: 0,
+    marginRight: 0,
+    marginBottom: 0,
     backgroundColor: "#ef4444",
     width: 48,
     height: 48,

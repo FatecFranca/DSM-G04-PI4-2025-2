@@ -5,27 +5,38 @@ import { useRouter } from "expo-router";
 import { useUserStore } from "@/src/stores/userStore";
 
 interface HeaderProps {
+  title?: string;
+  subtitle?: string;
   onProfilePress: () => void;
+  showPerformance?: boolean; // Opcional, padrão true
 }
 
-export default function Header({ onProfilePress }: HeaderProps) {
+export default function Header({ 
+  title, 
+  subtitle, 
+  onProfilePress,
+  showPerformance = true
+}: HeaderProps) {
   const router = useRouter();
   const user = useUserStore((state) => state.user);
 
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>ClickServ</Text>
+        <Text style={styles.title}>{title || "ClickServ"}</Text>
+        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
 
       <View style={styles.rightContainer}>
-        <TouchableOpacity
-          style={styles.performanceButton}
-          onPress={() => router.push("/desempenho")}
-        >
-          <Ionicons name="stats-chart" size={20} color="#fff" />
-          <Text style={styles.performanceText}>Desempenho</Text>
-        </TouchableOpacity>
+        {showPerformance && (
+          <TouchableOpacity
+            style={styles.performanceButton}
+            onPress={() => router.push("/desempenho")}
+          >
+            <Ionicons name="stats-chart" size={20} color="#fff" />
+            <Text style={styles.performanceText}>Desempenho</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
           <View style={styles.profileInfo}>
@@ -58,10 +69,41 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
   },
+  subtitle: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 2,
+  },
   rightContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  notificationButton: {
+    position: "relative",
+    width: 48,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "bold",
   },
   performanceButton: {
     flexDirection: "row",

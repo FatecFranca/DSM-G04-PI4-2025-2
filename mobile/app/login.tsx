@@ -38,9 +38,14 @@ export default function LoginPage() {
           .getState()
           .setAuth(data.user, data.accessToken, data.refreshToken);
 
-        // Pequeno delay para garantir que foi salvo
+        // Redireciona baseado no cargo
         setTimeout(() => {
-          router.replace("/");
+          if (data.user.cargo === 'cozinheiro') {
+            router.replace("/cozinha");
+          } else {
+            // garcom, gerente, etc vão para a tela principal
+            router.replace("/");
+          }
         }, 100);
       } else {
         Alert.alert("Erro", "Resposta inesperada do servidor");

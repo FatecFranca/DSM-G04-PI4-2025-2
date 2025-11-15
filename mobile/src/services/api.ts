@@ -161,6 +161,30 @@ export const cardapioAPI = {
   },
 };
 
+export interface PedidoCozinha {
+  _id: string;
+  mesa: {
+    _id: string;
+    numero: number;
+  };
+  itens: {
+    item: {
+      _id: string;
+      nome: string;
+    };
+    quantidade: number;
+    preco_unitario: number;
+    observacao?: string;
+  }[];
+  status: 'enviado_cozinha' | 'preparando' | 'pronto' | 'entregue';
+  observacoes_gerais?: string;
+  createdAt: string;
+  cozinheiro?: {
+    _id: string;
+    nome: string;
+  };
+}
+
 export const pedidoAPI = {
   // Criar pedido para uma mesa
   criar: async (
@@ -180,6 +204,24 @@ export const pedidoAPI = {
   // Marcar pedido como entregue
   marcarEntregue: async (pedidoId: string) => {
     const response = await api.patch(`/pedidos/${pedidoId}/entregue`);
+    return response.data;
+  },
+
+  // Listar pedidos da cozinha (cozinheiro)
+  listarCozinha: async (): Promise<PedidoCozinha[]> => {
+    const response = await api.get("/pedidos/cozinha");
+    return response.data.pedidos || [];
+  },
+
+  // Iniciar preparo (cozinheiro)
+  iniciarPreparo: async (pedidoId: string) => {
+    const response = await api.patch(`/pedidos/${pedidoId}/preparar`);
+    return response.data;
+  },
+
+  // Marcar como pronto (cozinheiro)
+  marcarPronto: async (pedidoId: string) => {
+    const response = await api.patch(`/pedidos/${pedidoId}/pronto`);
     return response.data;
   },
 };
