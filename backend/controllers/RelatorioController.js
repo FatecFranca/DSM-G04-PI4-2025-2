@@ -26,7 +26,24 @@ module.exports = class RelatorioController {
     const empresaId = req.user.empresa;
     const filtroData = criarFiltroData(req.query.dataInicio, req.query.dataFim);
 
+    console.log('🔍 [getKPIs] Buscando dados para:');
+    console.log('   empresaId:', empresaId);
+    console.log('   dataInicio:', req.query.dataInicio);
+    console.log('   dataFim:', req.query.dataFim);
+    console.log('   filtroData:', JSON.stringify(filtroData));
+
     try {
+      // Primeiro vamos ver quantas contas existem
+      const totalContasDoc = await Conta.countDocuments({ empresa: new mongoose.Types.ObjectId(empresaId) });
+      const contasFechadasDoc = await Conta.countDocuments({ 
+        empresa: new mongoose.Types.ObjectId(empresaId),
+        status: "fechada"
+      });
+      
+      console.log('📊 Contagem de contas:');
+      console.log('   Total de contas:', totalContasDoc);
+      console.log('   Contas fechadas:', contasFechadasDoc);
+
       const stats = await Conta.aggregate([
         {
           $match: {
@@ -46,7 +63,11 @@ module.exports = class RelatorioController {
         },
       ]);
 
+      console.log('📈 Resultado do aggregate:', JSON.stringify(stats));
+      console.log('📈 Quantidade de resultados:', stats.length);
+
       if (stats.length === 0) {
+        console.log('⚠️ Nenhum dado encontrado no aggregate, retornando zeros');
         return res.status(200).json({
           faturamentoTotal: 0,
           totalContas: 0,

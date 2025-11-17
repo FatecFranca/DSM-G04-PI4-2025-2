@@ -18,7 +18,6 @@ const Dashboard = ({ onBackToHome }) => {
   const [estatisticasVendas, setEstatisticasVendas] = useState(null);
   const [metodosPagamento, setMetodosPagamento] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
-  const [lowStockItems, setLowStockItems] = useState([]);
 
   // Calcular datas baseado no período selecionado
   const getDateRange = (period) => {
@@ -65,7 +64,6 @@ const Dashboard = ({ onBackToHome }) => {
         estatisticasData,
         metodosData,
         ordersData,
-        lowStockData,
       ] = await Promise.all([
         ApiService.getKPIs(dataInicio, dataFim).catch((err) => {
           console.error("Erro ao buscar KPIs:", err);
@@ -91,10 +89,6 @@ const Dashboard = ({ onBackToHome }) => {
           console.error("Erro ao buscar pedidos recentes:", err);
           return { pedidos: [] };
         }),
-        ApiService.getLowStockItems().catch((err) => {
-          console.error("Erro ao buscar itens com estoque baixo:", err);
-          return [];
-        }),
       ]);
 
       setKpis(kpisData);
@@ -103,7 +97,6 @@ const Dashboard = ({ onBackToHome }) => {
       setEstatisticasVendas(estatisticasData);
       setMetodosPagamento(metodosData);
       setRecentOrders(ordersData.pedidos || []);
-      setLowStockItems(lowStockData);
     } catch (err) {
       console.error("Erro ao carregar dados do dashboard:", err);
       setError("Erro ao carregar dados. Tente novamente.");
@@ -198,15 +191,6 @@ const Dashboard = ({ onBackToHome }) => {
       cancelled: "bg-red-100 text-red-800",
     };
     return statusClasses[status] || statusClasses.pending;
-  };
-
-  const getStockStatusBadge = (status) => {
-    const statusClasses = {
-      critical: "bg-red-100 text-red-800 border border-red-300",
-      warning: "bg-yellow-100 text-yellow-800 border border-yellow-300",
-      ok: "bg-green-100 text-green-800 border border-green-300",
-    };
-    return statusClasses[status] || statusClasses.ok;
   };
 
   return (
@@ -690,46 +674,7 @@ const Dashboard = ({ onBackToHome }) => {
             )}
 
             {/* Tables Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Produtos com Baixo Estoque */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  ⚠️ Produtos com Baixo Estoque
-                </h3>
-                {lowStockItems.length > 0 ? (
-                  <div className="space-y-3">
-                    {lowStockItems.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">
-                            {item.nome || item.name}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Estoque: {item.estoque || item.currentStock}{" "}
-                            unidades
-                          </p>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getStockStatusBadge(
-                            item.status ||
-                              (item.estoque < 5 ? "critical" : "warning")
-                          )}`}
-                        >
-                          {item.estoque < 5 ? "Crítico" : "Aviso"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    Todos os itens têm estoque adequado
-                  </p>
-                )}
-              </div>
-
+            <div className="grid grid-cols-1 gap-8">
               {/* Pedidos Recentes */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
