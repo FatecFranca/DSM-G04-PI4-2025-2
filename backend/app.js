@@ -19,6 +19,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:5173",
       "http://localhost:8081",
+      "http://172.191.224.11:5000",
     ],
   })
 );

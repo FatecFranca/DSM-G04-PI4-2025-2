@@ -79,7 +79,8 @@ const RegisterForm = ({ onBackToLogin, onBackToHome, onNavigate }) => {
       
     } catch (error) {
       console.error('Erro ao criar conta:', error)
-      setErrorMessage(error.message || 'Erro ao criar conta. Tente novamente.')
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao criar conta. Tente novamente.';
+      setErrorMessage(errorMessage);
     }
   }
 
