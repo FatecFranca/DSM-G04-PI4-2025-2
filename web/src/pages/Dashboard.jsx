@@ -58,6 +58,8 @@ const Dashboard = ({ onBackToHome }) => {
     try {
       const { dataInicio, dataFim } = getDateRange(timePeriod);
 
+      console.log('🔍 Carregando dashboard com período:', { dataInicio, dataFim, timePeriod });
+      
       const [
         kpisData,
         previsaoData,
@@ -68,35 +70,49 @@ const Dashboard = ({ onBackToHome }) => {
         lowStockData,
       ] = await Promise.all([
         ApiService.getKPIs(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar KPIs:", err);
+          console.error("❌ Erro ao buscar KPIs:", err);
+          console.error("❌ Detalhes do erro:", err.response?.data, err.response?.status);
           return null;
         }),
         ApiService.getPrevisaoVendas(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar previsão de vendas:", err);
+          console.error("❌ Erro ao buscar previsão de vendas:", err);
           return null;
         }),
         ApiService.getItensMaisVendidos().catch((err) => {
-          console.error("Erro ao buscar itens mais vendidos:", err);
+          console.error("❌ Erro ao buscar itens mais vendidos:", err);
           return [];
         }),
         ApiService.getEstatisticasVendas(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar estatísticas de vendas:", err);
+          console.error("❌ Erro ao buscar estatísticas de vendas:", err);
           return null;
         }),
         ApiService.getMetodosPagamento(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar métodos de pagamento:", err);
+          console.error("❌ Erro ao buscar métodos de pagamento:", err);
           return [];
         }),
         ApiService.getRecentOrders(10).catch((err) => {
-          console.error("Erro ao buscar pedidos recentes:", err);
+          console.error("❌ Erro ao buscar pedidos recentes:", err);
           return { pedidos: [] };
         }),
         ApiService.getLowStockItems().catch((err) => {
-          console.error("Erro ao buscar itens com estoque baixo:", err);
+          console.error("❌ Erro ao buscar itens com estoque baixo:", err);
           return [];
         }),
       ]);
 
+      console.log('🔍 DADOS BRUTOS RECEBIDOS (antes de setar states):');
+      console.log('   kpisData:', JSON.stringify(kpisData));
+      console.log('   previsaoData:', previsaoData);
+      console.log('   itensData:', itensData);
+      console.log('   estatisticasData:', estatisticasData);
+      console.log('   metodosData:', metodosData);
+
+      console.log('✅ KPIs recebidos:', kpisData);
+      console.log('✅ Previsão recebida:', previsaoData);
+      console.log('✅ Itens recebidos:', itensData);
+      console.log('✅ Estatísticas recebidas:', estatisticasData);
+      console.log('✅ Métodos recebidos:', metodosData);
+      
       setKpis(kpisData);
       setPrevisaoVendas(previsaoData);
       setItensMaisVendidos(itensData);
