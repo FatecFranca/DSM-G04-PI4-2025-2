@@ -22,22 +22,33 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response.status === 401 && !originalRequest._retry) {
+    console.log('❌ Erro na requisição:', error.response?.status, error.config?.url);
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('🔄 Token expirado (401), tentando refresh...');
       originalRequest._retry = true; 
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) throw new Error("Refresh token não encontrado");
+        if (!refreshToken) {
+          console.error('❌ Refresh token não encontrado no localStorage');
+          throw new Error("Refresh token não encontrado");
+        }
+        
+        console.log('🔄 Chamando /auth/refresh com token:', refreshToken.substring(0, 20) + '...');
         const rs = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           token: refreshToken,
         });
 
         const { accessToken } = rs.data;
+        console.log('✅ Novo accessToken recebido:', accessToken ? accessToken.substring(0, 20) + '...' : 'ERRO');
         localStorage.setItem("accessToken", accessToken);
 
         originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+        console.log('🔄 Refazendo requisição original:', originalRequest.url);
         return api(originalRequest);
       } catch (_error) {
+        console.error('❌ Erro no refresh, fazendo logout:', _error.response?.data || _error.message);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
