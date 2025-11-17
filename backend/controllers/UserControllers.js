@@ -84,7 +84,7 @@ module.exports = class UserController {
       const accessToken = jwt.sign(
         { id: user._id, cargo: user.cargo, empresa: user.empresa },
         secret,
-        { expiresIn: "15m" }
+        { expiresIn: "15s" }
       );
       const refreshToken = jwt.sign(
         { id: user._id, cargo: user.cargo, empresa: user.empresa },
