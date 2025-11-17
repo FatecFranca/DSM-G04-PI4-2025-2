@@ -9,7 +9,6 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
-    console.log('🔑 Token sendo enviado:', token ? `${token.substring(0, 20)}...` : 'NENHUM TOKEN');
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
@@ -23,29 +22,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    console.log('❌ Erro na requisição:', error.response?.status, error.response?.data);
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log('🔄 Token expirado, tentando refresh...');
+    if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; 
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) throw new Error("Refresh token não encontrado");
-        
-        console.log('🔄 Chamando /auth/refresh...');
         const rs = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           token: refreshToken,
         });
 
         const { accessToken } = rs.data;
-        console.log('✅ Novo token recebido:', accessToken ? `${accessToken.substring(0, 20)}...` : 'ERRO');
         localStorage.setItem("accessToken", accessToken);
 
         originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (_error) {
-        console.error('❌ Erro no refresh, redirecionando para login:', _error);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
@@ -68,25 +60,14 @@ class ApiService {
    * @param {string} credencial - Senha (gerente) ou PIN (funcionário)
    */
   static async login(email, credencial) {
-    console.log('🔐 Tentando login com:', { email, credencial: '***' });
     const response = await axios.post(`${API_BASE_URL}/users/login`, {
       email,
       credencial,
     });
-    
-    console.log('📦 Resposta do login:', response.data);
-    
     if (response.data.accessToken) {
-      console.log('✅ Salvando tokens no localStorage');
-      console.log('   - accessToken:', response.data.accessToken.substring(0, 20) + '...');
-      console.log('   - refreshToken:', response.data.refreshToken ? response.data.refreshToken.substring(0, 20) + '...' : 'AUSENTE');
-      console.log('   - user:', response.data.user);
-      
-      localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
+      localStorage.setItem("accessToken", response.data.accessToken); // ⬅️ Novo nome
+      localStorage.setItem("refreshToken", response.data.refreshToken); // ⬅️ Novo token
       localStorage.setItem("user", JSON.stringify(response.data.user));
-    } else {
-      console.error('❌ Login não retornou accessToken!');
     }
 
     return response.data;
@@ -231,11 +212,9 @@ class ApiService {
   // ============ RELATÓRIOS ============
 
   static async getKPIs(dataInicio = null, dataFim = null) {
-    console.log('📡 Chamando /relatorios/kpis com:', { dataInicio, dataFim });
     const response = await api.get('/relatorios/kpis', { 
       params: { dataInicio, dataFim } 
     });
-    console.log('📥 Resposta de /relatorios/kpis:', response.data);
     return response.data;
   }
 
