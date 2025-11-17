@@ -11,11 +11,8 @@ const criarFiltroData = (
   campoData = "data_fechamento"
 ) => {
   if (dataInicio && dataFim) {
-    const inicio = new Date(dataInicio);
-    inicio.setHours(0, 0, 0, 0);
-    
-    const fim = new Date(dataFim);
-    fim.setHours(23, 59, 59, 999);
+    const inicio = new Date(dataInicio + "T00:00:00.000Z");
+    const fim = new Date(dataFim + "T23:59:59.999Z");
     
     return {
       [campoData]: {
