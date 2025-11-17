@@ -3,35 +3,30 @@ const User = require("../models/User");
 const getUserToken = require("./getUserToken");
 
 const isAuthenticated = async (req, res, next) => {
-  if (!req.headers.authorization) {
-    return res.status(401).json({ message: "Acesso negado" });
-  }
-  const token = getUserToken(req);
+  if (!req.headers.authorization) {
+    return res.status(401).json({ message: "Acesso negado" });
+  }
+  const token = getUserToken(req);
 
-  if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Acesso negado." });
-  }
+  if (!token) {
+    return res.status(401).json({ message: "Acesso negado." });
+  }
 
-  try {
-    const secret = process.env.JWT_SECRET;
+  try {
+    const secret = process.env.JWT_SECRET;
     if (!secret) {
-        throw new Error("JWT_SECRET não definido no servidor.");
+      throw new Error("JWT_SECRET não definido no servidor.");
     }
-    const decoded = jwt.verify(token, secret);
-    req.user = await User.findById(decoded.id).select("-senha -pin");
-    next(); 
-
+    const decoded = jwt.verify(token, secret);
+    req.user = await User.findById(decoded.id).select("-senha -pin");
+    next();
   } catch (error) {
-    console.log('❌ [isAuthenticated] Erro ao validar token:', error.name, error.message);
-    
-    if (error.name === 'TokenExpiredError') {
-        console.log('⏰ Token expirado, retornando 401');
-        return res.status(401).json({ message: "Token expirado." });
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expirado." });
     }
-    
-    console.log('🚫 Token inválido, retornando 400');
+
     return res.status(400).json({ message: "Token inválido." });
   }
-};module.exports = isAuthenticated;
+};
+module.exports = isAuthenticated;

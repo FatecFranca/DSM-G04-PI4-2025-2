@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const RefreshToken = require('../models/RefreshToken');
+const jwt = require("jsonwebtoken");
+const RefreshToken = require("../models/RefreshToken");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const validation = {
@@ -42,7 +42,6 @@ module.exports = class UserController {
         .status(200)
         .json({ message: `Funcionário ${cargo} criado com sucesso` });
     } catch (err) {
-      console.error("Erro ao criar funcionário:", err);
       if (err.code === 11000) {
         return res.status(409).json({
           message: "Um funcionário com este e-mail já está cadastrado.",
@@ -84,7 +83,7 @@ module.exports = class UserController {
       const accessToken = jwt.sign(
         { id: user._id, cargo: user.cargo, empresa: user.empresa },
         secret,
-        { expiresIn: "15s" }
+        { expiresIn: "15m" }
       );
       const refreshToken = jwt.sign(
         { id: user._id, cargo: user.cargo, empresa: user.empresa },
@@ -101,7 +100,7 @@ module.exports = class UserController {
       res.status(200).json({
         message: "Login bem-sucedido!",
         accessToken,
-        refreshToken, 
+        refreshToken,
         user: {
           id: user._id,
           nome: user.nome,
@@ -110,7 +109,6 @@ module.exports = class UserController {
         },
       });
     } catch (err) {
-      console.error("Erro ao gerar tokens:", err);
       return res
         .status(500)
         .json({ message: "Erro ao finalizar login.", error: err.message });

@@ -1,7 +1,7 @@
 const Conta = require("../models/Conta");
 const Pedido = require("../models/Pedido");
-const Pagamento = require('../models/Pagamento')
-const Chamado = require('../models/Chamado')
+const Pagamento = require("../models/Pagamento");
+const Chamado = require("../models/Chamado");
 const mongoose = require("mongoose");
 const ss = require("simple-statistics");
 
@@ -13,7 +13,7 @@ const criarFiltroData = (
   if (dataInicio && dataFim) {
     const inicio = new Date(dataInicio + "T00:00:00.000Z");
     const fim = new Date(dataFim + "T23:59:59.999Z");
-    
+
     return {
       [campoData]: {
         $gte: inicio,
@@ -28,25 +28,7 @@ module.exports = class RelatorioController {
   static async getKPIs(req, res) {
     const empresaId = req.user.empresa;
     const filtroData = criarFiltroData(req.query.dataInicio, req.query.dataFim);
-
-    console.log('🔍 [getKPIs] Buscando dados para:');
-    console.log('   empresaId:', empresaId);
-    console.log('   dataInicio:', req.query.dataInicio);
-    console.log('   dataFim:', req.query.dataFim);
-    console.log('   filtroData:', JSON.stringify(filtroData));
-
     try {
-      // Primeiro vamos ver quantas contas existem
-      const totalContasDoc = await Conta.countDocuments({ empresa: new mongoose.Types.ObjectId(empresaId) });
-      const contasFechadasDoc = await Conta.countDocuments({ 
-        empresa: new mongoose.Types.ObjectId(empresaId),
-        status: "fechada"
-      });
-      
-      console.log('📊 Contagem de contas:');
-      console.log('   Total de contas:', totalContasDoc);
-      console.log('   Contas fechadas:', contasFechadasDoc);
-
       const stats = await Conta.aggregate([
         {
           $match: {
@@ -66,11 +48,7 @@ module.exports = class RelatorioController {
         },
       ]);
 
-      console.log('📈 Resultado do aggregate:', JSON.stringify(stats));
-      console.log('📈 Quantidade de resultados:', stats.length);
-
       if (stats.length === 0) {
-        console.log('⚠️ Nenhum dado encontrado no aggregate, retornando zeros');
         return res.status(200).json({
           faturamentoTotal: 0,
           totalContas: 0,
@@ -304,21 +282,19 @@ module.exports = class RelatorioController {
 
       res.status(200).json(stats);
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          message: "Erro ao buscar métodos de pagamento.",
-          error: error.message,
-        });
+      res.status(500).json({
+        message: "Erro ao buscar métodos de pagamento.",
+        error: error.message,
+      });
     }
   }
   static async getMeuDesempenhoAtendimento(req, res) {
     const empresaId = req.user.empresa;
-    const garcomId = req.user.id; 
+    const garcomId = req.user.id;
     const filtroData = criarFiltroData(
-      req.query.dataInicio, 
-      req.query.dataFim, 
-      "createdAt" 
+      req.query.dataInicio,
+      req.query.dataFim,
+      "createdAt"
     );
 
     try {
@@ -326,8 +302,8 @@ module.exports = class RelatorioController {
         {
           $match: {
             empresa: new mongoose.Types.ObjectId(empresaId),
-            garcom: new mongoose.Types.ObjectId(garcomId), 
-            status: { $ne: "pendente" }, 
+            garcom: new mongoose.Types.ObjectId(garcomId),
+            status: { $ne: "pendente" },
             timestamp_atendimento: { $exists: true },
             ...filtroData,
           },
@@ -337,23 +313,23 @@ module.exports = class RelatorioController {
             tempoDeEspera_ms: {
               $subtract: ["$timestamp_atendimento", "$createdAt"],
             },
-            garcom: 1
+            garcom: 1,
           },
         },
         {
           $group: {
-            _id: "$garcom", 
+            _id: "$garcom",
             tempoMedio_ms: { $avg: "$tempoDeEspera_ms" },
-            totalChamados: { $sum: 1 }
+            totalChamados: { $sum: 1 },
           },
         },
       ]);
 
       if (stats.length === 0) {
-        return res.status(200).json({ 
-          tempoMedioSegundos: 0, 
+        return res.status(200).json({
+          tempoMedioSegundos: 0,
           totalChamados: 0,
-          nomeGarcom: req.user.nome 
+          nomeGarcom: req.user.nome,
         });
       }
 
@@ -362,17 +338,25 @@ module.exports = class RelatorioController {
       res.status(200).json({
         tempoMedioSegundos: parseFloat(tempoMedioEmSegundos),
         totalChamados: stats[0].totalChamados,
-        nomeGarcom: req.user.nome 
+        nomeGarcom: req.user.nome,
       });
-      
     } catch (error) {
-       res.status(500).json({ message: "Erro ao calcular seu tempo de atendimento.", error: error.message });
+      res
+        .status(500)
+        .json({
+          message: "Erro ao calcular seu tempo de atendimento.",
+          error: error.message,
+        });
     }
   }
   static async getMeuDesempenhoVendas(req, res) {
     const empresaId = req.user.empresa;
     const garcomId = req.user.id;
-    const filtroData = criarFiltroData(req.query.dataInicio, req.query.dataFim, "createdAt");
+    const filtroData = criarFiltroData(
+      req.query.dataInicio,
+      req.query.dataFim,
+      "createdAt"
+    );
 
     try {
       const stats = await Pedido.aggregate([
@@ -387,7 +371,9 @@ module.exports = class RelatorioController {
         {
           $project: {
             pedidoId: "$_id",
-            subtotal_item: { $multiply: ["$itens.quantidade", "$itens.preco_unitario"] },
+            subtotal_item: {
+              $multiply: ["$itens.quantidade", "$itens.preco_unitario"],
+            },
           },
         },
         {
@@ -398,7 +384,7 @@ module.exports = class RelatorioController {
         },
         {
           $group: {
-            _id: null, 
+            _id: null,
             faturamentoTotal: { $sum: "$valor_total_do_pedido" },
             totalPedidos: { $sum: 1 },
           },
@@ -414,12 +400,19 @@ module.exports = class RelatorioController {
       ]);
 
       if (stats.length === 0) {
-        return res.status(200).json({ faturamentoTotal: 0, totalPedidos: 0, ticketMedio: 0 });
+        return res
+          .status(200)
+          .json({ faturamentoTotal: 0, totalPedidos: 0, ticketMedio: 0 });
       }
 
-      res.status(200).json(stats[0]); 
+      res.status(200).json(stats[0]);
     } catch (error) {
-      res.status(500).json({ message: "Erro ao calcular seu desempenho de vendas.", error: error.message });
+      res
+        .status(500)
+        .json({
+          message: "Erro ao calcular seu desempenho de vendas.",
+          error: error.message,
+        });
     }
   }
 };

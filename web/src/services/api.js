@@ -18,37 +18,50 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response, 
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    console.log('❌ Erro na requisição:', error.response?.status, error.config?.url);
+    console.log(
+      "❌ Erro na requisição:",
+      error.response?.status,
+      error.config?.url
+    );
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log('🔄 Token expirado (401), tentando refresh...');
-      originalRequest._retry = true; 
+      console.log("🔄 Token expirado (401), tentando refresh...");
+      originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) {
-          console.error('❌ Refresh token não encontrado no localStorage');
+          console.error("❌ Refresh token não encontrado no localStorage");
           throw new Error("Refresh token não encontrado");
         }
-        
-        console.log('🔄 Chamando /auth/refresh com token:', refreshToken.substring(0, 20) + '...');
+
+        console.log(
+          "🔄 Chamando /auth/refresh com token:",
+          refreshToken.substring(0, 20) + "..."
+        );
         const rs = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           token: refreshToken,
         });
 
         const { accessToken } = rs.data;
-        console.log('✅ Novo accessToken recebido:', accessToken ? accessToken.substring(0, 20) + '...' : 'ERRO');
+        console.log(
+          "✅ Novo accessToken recebido:",
+          accessToken ? accessToken.substring(0, 20) + "..." : "ERRO"
+        );
         localStorage.setItem("accessToken", accessToken);
 
         originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
-        console.log('🔄 Refazendo requisição original:', originalRequest.url);
+        console.log("🔄 Refazendo requisição original:", originalRequest.url);
         return api(originalRequest);
       } catch (_error) {
-        console.error('❌ Erro no refresh, fazendo logout:', _error.response?.data || _error.message);
+        console.error(
+          "❌ Erro no refresh, fazendo logout:",
+          _error.response?.data || _error.message
+        );
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
@@ -84,7 +97,6 @@ class ApiService {
     return response.data;
   }
   static async logout() {
-
     const refreshToken = localStorage.getItem("refreshToken");
     if (refreshToken) {
       try {
@@ -223,63 +235,63 @@ class ApiService {
   // ============ RELATÓRIOS ============
 
   static async getKPIs(dataInicio = null, dataFim = null) {
-    const response = await api.get('/relatorios/kpis', { 
-      params: { dataInicio, dataFim } 
+    const response = await api.get("/relatorios/kpis", {
+      params: { dataInicio, dataFim },
     });
     return response.data;
   }
 
   static async getPrevisaoVendas(dataInicio = null, dataFim = null) {
-    const response = await api.get('/relatorios/previsao-vendas', {
-      params: { dataInicio, dataFim }
+    const response = await api.get("/relatorios/previsao-vendas", {
+      params: { dataInicio, dataFim },
     });
     return response.data;
   }
 
   static async getItensMaisVendidos() {
-    const response = await api.get('/relatorios/itens-mais-vendidos');
+    const response = await api.get("/relatorios/itens-mais-vendidos");
     return response.data;
   }
 
   static async getEstatisticasVendas(dataInicio = null, dataFim = null) {
-    const response = await api.get('/relatorios/estatisticas-vendas', {
-      params: { dataInicio, dataFim }
+    const response = await api.get("/relatorios/estatisticas-vendas", {
+      params: { dataInicio, dataFim },
     });
     return response.data;
   }
 
   static async getMetodosPagamento(dataInicio = null, dataFim = null) {
-    const response = await api.get('/relatorios/metodos-pagamento', {
-      params: { dataInicio, dataFim }
+    const response = await api.get("/relatorios/metodos-pagamento", {
+      params: { dataInicio, dataFim },
     });
     return response.data;
   }
 
   // ============ DASHBOARD (MUDOU!) ============
-  
+
   static async getDashboardStats(dataInicio = null, dataFim = null) {
     const [kpis, itens, estatisticas] = await Promise.all([
       this.getKPIs(dataInicio, dataFim),
       this.getItensMaisVendidos(),
-      this.getEstatisticasVendas(dataInicio, dataFim)
+      this.getEstatisticasVendas(dataInicio, dataFim),
     ]);
-    
+
     return {
       kpis,
       topItems: itens,
-      statistics: estatisticas
+      statistics: estatisticas,
     };
   }
 
   static async getRecentOrders(limit = 10) {
-    const response = await api.get('/pedidos', { params: { limit } });
+    const response = await api.get("/pedidos", { params: { limit } });
     return response.data;
   }
 
   static async getLowStockItems() {
     const response = await this.getAllCardapios();
     const itens = response.itens || response.cardapios || [];
-    return itens.filter(item => item.estoque && item.estoque < 10);
+    return itens.filter((item) => item.estoque && item.estoque < 10);
   }
 }
 

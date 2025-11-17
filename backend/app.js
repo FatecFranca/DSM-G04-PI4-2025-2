@@ -5,8 +5,8 @@ const app = express();
 const cors = require("cors");
 const { initializeWebSocket } = require("./websocket");
 
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsdoc = require("swagger-jsdoc");
 
 require("./db/conn");
 
@@ -26,29 +26,30 @@ app.use(
 
 const swaggerOptions = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Click Serve API',
-      version: '1.0.0',
-      description: 'API para o sistema de gerenciamento de restaurante Click Serve',
+      title: "Click Serve API",
+      version: "1.0.0",
+      description:
+        "API para o sistema de gerenciamento de restaurante Click Serve",
     },
     servers: [
       {
-        url: 'http://172.191.224.11:5000', 
-        description: 'Servidor de Produção (Azure VM)',
+        url: "http://172.191.224.11:5000",
+        description: "Servidor de Produção (Azure VM)",
       },
       {
-        url: 'http://localhost:5000',
-        description: 'Servidor de Desenvolvimento Local',
-      }
+        url: "http://localhost:5000",
+        description: "Servidor de Desenvolvimento Local",
+      },
     ],
     components: {
       securitySchemes: {
-        bearerAuth: { 
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Token JWT (AccessToken) obtido no login',
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Token JWT (AccessToken) obtido no login",
         },
       },
     },
@@ -58,11 +59,11 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./routes/*.js', './models/*.js'], 
+  apis: ["./routes/*.js", "./models/*.js"],
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const userRoutes = require("./routes/userRoutes");
 const empresaRoutes = require("./routes/empresaRoutes");
