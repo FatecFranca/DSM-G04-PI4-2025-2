@@ -273,6 +273,50 @@ const Dashboard = ({ onBackToHome }) => {
               >
                 Ano
               </button>
+              <button
+                onClick={loadDashboardData} // <-- Chama a função de recarregar
+                disabled={loading} // <-- Desativa se já estiver carregando
+                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-colors hover:bg-blue-200 disabled:opacity-50"
+                title="Atualizar dados"
+              >
+                {loading ? (
+                  // Ícone de "loading"
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    ></path>
+                  </svg>
+                ) : (
+                  // Ícone de "atualizar"
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    ></path>
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -689,7 +733,7 @@ const Dashboard = ({ onBackToHome }) => {
               {/* Pedidos Recentes */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                 Pedidos Recentes
+                  Pedidos Recentes
                 </h3>
                 {recentOrders.length > 0 ? (
                   <div className="overflow-x-auto">
