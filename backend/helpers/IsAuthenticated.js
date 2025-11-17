@@ -23,13 +23,15 @@ const isAuthenticated = async (req, res, next) => {
     req.user = await User.findById(decoded.id).select("-senha -pin");
     next(); 
 
-  } catch (error) {
+  } catch (error) {
+    console.log('❌ [isAuthenticated] Erro ao validar token:', error.name, error.message);
+    
     if (error.name === 'TokenExpiredError') {
+        console.log('⏰ Token expirado, retornando 401');
         return res.status(401).json({ message: "Token expirado." });
     }
     
-    return res.status(400).json({ message: "Token inválido." });
-  }
-};
-
-module.exports = isAuthenticated;
+    console.log('🚫 Token inválido, retornando 400');
+    return res.status(400).json({ message: "Token inválido." });
+  }
+};module.exports = isAuthenticated;
