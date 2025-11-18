@@ -9,7 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 const AdminPage = ({ onBackToHome }) => {
   const [activeTab, setActiveTab] = useState("overview"); // 'overview', 'users', 'mesas', 'cardapio', 'chamados', 'perfil'
   const [selectedPeriod, setSelectedPeriod] = useState("month");
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Estados para dados do backend
   const [funcionarios, setFuncionarios] = useState([]);
@@ -615,11 +615,9 @@ const AdminPage = ({ onBackToHome }) => {
     try {
       await ApiService.deleteEmpresa();
       alert(
-        "Empresa excluída com sucesso. Você será redirecionado para a página de login."
+        "Empresa excluída com sucesso. Você será deslogado."
       );
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      window.location.href = "/login";
+      logout();
     } catch (err) {
       console.error("Erro ao excluir empresa:", err);
       alert(

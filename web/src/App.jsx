@@ -17,12 +17,19 @@ function App() {
     }
   }, [isAuthenticated, currentPage])
 
+  // Redirecionar para login quando deslogar
+  useEffect(() => {
+    if (!isAuthenticated && (currentPage === 'admin' || currentPage === 'dashboard')) {
+      setCurrentPage('login')
+    }
+  }, [isAuthenticated, currentPage])
+
   // Proteção de rotas - Apenas usuários autenticados
   useEffect(() => {
     // Redirecionar para home se tentar acessar páginas protegidas sem autenticação
     if (!isAuthenticated) {
       if (currentPage === 'admin' || currentPage === 'dashboard') {
-        setCurrentPage('home')
+        setCurrentPage('login')
       }
     }
     // Redirecionar para home se tentar acessar páginas de gerente sem ser gerente
@@ -39,7 +46,7 @@ function App() {
     }
     return (
       <div className="min-h-screen bg-gray-50">
-        <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
+        <NavBar onNavigate={setCurrentPage} />
         <AdminPage onBackToHome={() => setCurrentPage('home')} />
       </div>
     )
@@ -51,7 +58,7 @@ function App() {
     }
     return (
       <div className="min-h-screen bg-gray-50">
-        <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
+        <NavBar onNavigate={setCurrentPage} />
         <Dashboard onBackToHome={() => setCurrentPage('home')} />
       </div>
     )
@@ -82,7 +89,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-neutral-50 to-secondary-50">
-      <NavBar onNavigate={setCurrentPage} user={user} onLogout={logout} />
+      <NavBar onNavigate={setCurrentPage} />
       
       {/* Hero Section */}
       <div className="container mx-auto px-4">

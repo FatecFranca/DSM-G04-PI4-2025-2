@@ -21,7 +21,7 @@ const NavBar = ({ onNavigate }) => {
   const handleLogout = () => {
     logout()
     setIsMenuOpen(false)
-    onNavigate?.('home')
+    onNavigate?.('login')
   }
 
   // Obter o primeiro nome do usuário para exibição
