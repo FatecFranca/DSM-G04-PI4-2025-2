@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background Circle -->
+  <circle cx="32" cy="32" r="30" fill="#0284c7"/>
+  
+  <!-- Plate/Dish -->
+  <ellipse cx="32" cy="34" rx="18" ry="16" fill="white"/>
+  <ellipse cx="32" cy="32" rx="18" ry="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  
+  <!-- Fork -->
+  <g transform="translate(20, 18)">
+    <rect x="3" y="0" width="1.5" height="16" fill="#475569"/>
+    <rect x="1" y="0" width="1" height="8" fill="#475569"/>
+    <rect x="5" y="0" width="1" height="8" fill="#475569"/>
+  </g>
+  
+  <!-- Knife -->
+  <g transform="translate(38, 18)">
+    <rect x="3" y="0" width="1.5" height="16" fill="#475569"/>
+    <path d="M 2 0 L 6 0 L 4 4 Z" fill="#475569"/>
+  </g>
+  
+  <!-- Click indicator (cursor pointer) -->
+  <g transform="translate(44, 42)">
+    <path d="M 0 0 L 0 10 L 3 7 L 5 11 L 7 10 L 5 6 L 8 6 Z" fill="white" stroke="#0284c7" stroke-width="1"/>
+  </g>
+</svg>

@@ -7,26 +7,22 @@ const SolutionsPage = ({ onNavigate }) => {
 
   const solutions = {
     restaurant: {
-      title: '🍽️ Restaurantes',
+      title: 'Restaurantes',
       description: 'Solução completa para gestão de restaurantes',
       features: [
         {
-          icon: '📋',
           title: 'Cardápio Digital',
           description: 'Gerencie seu cardápio de forma digital e atualizada em tempo real'
         },
         {
-          icon: '🔔',
           title: 'Chamados Inteligentes',
           description: 'Sistema de chamados via botão ESP32 para atendimento rápido'
         },
         {
-          icon: '💰',
           title: 'Controle de Mesas',
           description: 'Gestão completa de mesas, pedidos e contas'
         },
         {
-          icon: '📊',
           title: 'Relatórios Detalhados',
           description: 'Análises de vendas, produtos mais vendidos e desempenho'
         }
@@ -39,26 +35,22 @@ const SolutionsPage = ({ onNavigate }) => {
       ]
     },
     bar: {
-      title: '🍺 Bares',
+      title: 'Bares',
       description: 'Gestão especializada para bares e pubs',
       features: [
         {
-          icon: '🍹',
           title: 'Gestão de Bebidas',
           description: 'Controle completo de estoque de bebidas e drinks'
         },
         {
-          icon: '⏱️',
           title: 'Happy Hour',
           description: 'Configure promoções e horários especiais automaticamente'
         },
         {
-          icon: '👥',
           title: 'Gerenciamento de Equipe',
           description: 'Controle de garçons, bartenders e cozinheiros'
         },
         {
-          icon: '📱',
           title: 'Comandas Digitais',
           description: 'Sistema de comandas digitais para maior controle'
         }
@@ -71,26 +63,22 @@ const SolutionsPage = ({ onNavigate }) => {
       ]
     },
     cafe: {
-      title: '☕ Cafeterias',
+      title: 'Cafeterias',
       description: 'Solução otimizada para cafeterias e cafés',
       features: [
         {
-          icon: '🥐',
           title: 'Produtos Especiais',
           description: 'Gestão de cafés especiais, doces e salgados'
         },
         {
-          icon: '⚡',
           title: 'Atendimento Rápido',
           description: 'Sistema otimizado para alto volume de pedidos rápidos'
         },
         {
-          icon: '💳',
           title: 'Pagamentos Ágeis',
           description: 'Integração com múltiplas formas de pagamento'
         },
         {
-          icon: '📈',
           title: 'Analytics',
           description: 'Acompanhe horários de pico e produtos favoritos'
         }
@@ -132,7 +120,7 @@ const SolutionsPage = ({ onNavigate }) => {
                 : 'bg-white text-neutral-700 hover:bg-neutral-50'
             }`}
           >
-            🍽️ Restaurantes
+            Restaurantes
           </button>
           <button
             onClick={() => setActiveTab('bar')}
@@ -142,7 +130,7 @@ const SolutionsPage = ({ onNavigate }) => {
                 : 'bg-white text-neutral-700 hover:bg-neutral-50'
             }`}
           >
-            🍺 Bares
+            Bares
           </button>
           <button
             onClick={() => setActiveTab('cafe')}
@@ -152,7 +140,7 @@ const SolutionsPage = ({ onNavigate }) => {
                 : 'bg-white text-neutral-700 hover:bg-neutral-50'
             }`}
           >
-            ☕ Cafeterias
+            Cafeterias
           </button>
         </div>
 
@@ -174,7 +162,6 @@ const SolutionsPage = ({ onNavigate }) => {
                 key={index}
                 className="p-6 bg-gradient-to-br from-primary-50 to-neutral-50 rounded-xl hover:shadow-lg transition-shadow"
               >
-                <div className="text-4xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-bold text-neutral-900 mb-2">
                   {feature.title}
                 </h3>
