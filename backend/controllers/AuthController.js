@@ -27,7 +27,7 @@ module.exports = class AuthController {
       const accessToken = jwt.sign(
         { id: user._id, cargo: user.cargo, empresa: user.empresa },
         secret,
-        { expiresIn: "15s" }
+        { expiresIn: "15m" }
       );
 
       res.status(200).json({ accessToken });

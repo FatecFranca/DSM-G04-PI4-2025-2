@@ -22,10 +22,16 @@ export const useChamadoStore = create<ChamadoState>((set, get) => ({
   error: null,
 
   setChamados: (chamados) => {
+    console.log(
+      "📝 [ChamadoStore] setChamados chamado com",
+      chamados.length,
+      "chamados"
+    );
     set({ chamados, isLoading: false });
   },
 
   addChamado: (chamado) => {
+    console.log("➕ [ChamadoStore] addChamado:", chamado);
     const state = get();
     const novosN = [...state.chamados, chamado];
     set({ chamados: novosN });
@@ -49,7 +55,10 @@ export const useChamadoStore = create<ChamadoState>((set, get) => ({
   setError: (error) => set({ error }),
 
   initializeListeners: () => {
+    console.log("🎧 [ChamadoStore] Inicializando listeners de chamados");
+
     const handleNovoChamado = (novoChamado: Chamado) => {
+      console.log("🔔 [ChamadoStore] Novo chamado recebido:", novoChamado);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       get().addChamado(novoChamado);
     };
@@ -57,6 +66,7 @@ export const useChamadoStore = create<ChamadoState>((set, get) => ({
     const handleChamadoAtualizado = (
       chamadoAtualizado: Partial<Chamado> & { _id: string }
     ) => {
+      console.log("🔄 [ChamadoStore] Chamado atualizado:", chamadoAtualizado);
       if (
         chamadoAtualizado.status === "atendido" ||
         chamadoAtualizado.status === "resolvido"

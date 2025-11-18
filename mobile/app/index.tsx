@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -24,35 +25,65 @@ import ProfileModal from "@/src/components/ProfileModal";
 import { useChamadoStore } from "@/src/stores/chamadoStore";
 import { useMesaStore } from "@/src/stores/mesaStore";
 import { usePedidoProntoStore } from "@/src/stores/pedidoProntoStore";
+import { useUserStore } from "@/src/stores/userStore";
 
 export default function Index() {
   const mesas = useMesaStore((state) => state.mesas);
   const chamados = useChamadoStore((state) => state.chamados);
+  const user = useUserStore((state) => state.user);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [isChamadosVisible, setIsChamadosVisible] = useState(false);
   const [isPedidosProntosVisible, setIsPedidosProntosVisible] = useState(false);
 
   const pedidosProntos = usePedidoProntoStore((state) => state.pedidosProntos);
-  const carregarPedidosProntos = usePedidoProntoStore((state) => state.carregarPedidosProntos);
-  const initializeListeners = usePedidoProntoStore((state) => state.initializeListeners);
+  const carregarPedidosProntos = usePedidoProntoStore(
+    (state) => state.carregarPedidosProntos
+  );
+  const initializeListeners = usePedidoProntoStore(
+    (state) => state.initializeListeners
+  );
   const [mesasEmAbertura, setMesasEmAbertura] = useState<{
     [key: string]: boolean;
   }>({});
 
   useEffect(() => {
+    if (!user) {
+      console.log("⏭️ Usuário não logado, pulando carregamento de mesas");
+      return;
+    }
+
     if (mesas.length === 0) {
       carregarMesas();
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) {
+      console.log(
+        "⏭️ Usuário não logado, pulando carregamento de pedidos prontos"
+      );
+      return;
+    }
+
     carregarPedidosProntos();
     initializeListeners();
+  }, [user]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([carregarMesas(), carregarPedidosProntos()]);
+    } catch (error) {
+      console.error("Erro ao atualizar:", error);
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
   async function carregarMesas() {
@@ -154,7 +185,6 @@ export default function Index() {
       <Header onProfilePress={() => setIsProfileVisible(true)} />
 
       <View style={styles.floatingButtonsContainer}>
-
         <TouchableOpacity
           style={styles.pedidosProntosButton}
           onPress={() => setIsPedidosProntosVisible(true)}
@@ -168,7 +198,6 @@ export default function Index() {
             </View>
           )}
         </TouchableOpacity>
-
 
         <TouchableOpacity
           style={[
@@ -186,7 +215,6 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-
       <ChamadosModal
         visible={isChamadosVisible}
         onClose={() => setIsChamadosVisible(false)}
@@ -195,13 +223,22 @@ export default function Index() {
         onAtenderChamado={handleAtenderChamado}
       />
 
-
       <PedidosProntosModal
         visible={isPedidosProntosVisible}
         onClose={() => setIsPedidosProntosVisible(false)}
       />
 
-      <ScrollView contentContainerStyle={styles.mesasGrid}>
+      <ScrollView
+        contentContainerStyle={styles.mesasGrid}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#007AFF"]}
+            tintColor="#007AFF"
+          />
+        }
+      >
         {mesas.map((mesa) => (
           <View key={mesa._id} style={styles.mesaContainer}>
             <View

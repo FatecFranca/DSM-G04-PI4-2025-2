@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import BarChart from "../components/charts/BarChart";
 import LineChart from "../components/charts/LineChart";
 import PieChart from "../components/charts/PieChart";
@@ -7,9 +7,20 @@ import { DataTransformer } from "../utils/DataTransformer";
 import ApiService from "../services/api";
 
 const Dashboard = ({ onBackToHome }) => {
-  const [timePeriod, setTimePeriod] = useState("week"); // 'week', 'month', 'year'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Estados para filtro personalizado
+  const hoje = new Date();
+  const seteDiasAtras = new Date();
+  seteDiasAtras.setDate(hoje.getDate() - 7);
+
+  const [customDataInicio, setCustomDataInicio] = useState(
+    seteDiasAtras.toISOString().split("T")[0]
+  );
+  const [customDataFim, setCustomDataFim] = useState(
+    hoje.toISOString().split("T")[0]
+  );
 
   // Estados para dados do backend
   const [kpis, setKpis] = useState(null);
@@ -19,91 +30,68 @@ const Dashboard = ({ onBackToHome }) => {
   const [metodosPagamento, setMetodosPagamento] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
 
-  // Calcular datas baseado no período selecionado
-  const getDateRange = (period) => {
-    const hoje = new Date();
-    const dataFim = hoje.toISOString().split("T")[0];
-    let dataInicio = new Date();
-
-    switch (period) {
-      case "week":
-        dataInicio.setDate(hoje.getDate() - 7);
-        break;
-      case "month":
-        dataInicio.setMonth(hoje.getMonth() - 1);
-        break;
-      case "year":
-        dataInicio.setFullYear(hoje.getFullYear() - 1);
-        break;
-      default:
-        dataInicio.setDate(hoje.getDate() - 7);
-    }
-
+  // Retornar datas customizadas
+  const getDateRange = useCallback(() => {
     return {
-      dataInicio: dataInicio.toISOString().split("T")[0],
-      dataFim,
+      dataInicio: customDataInicio,
+      dataFim: customDataFim,
     };
-  };
+  }, [customDataInicio, customDataFim]);
 
   // Carregar dados do backend
-  useEffect(() => {
-    loadDashboardData();
-  }, [timePeriod]);
+  const loadDashboardData = useCallback(async () => {
+    if (!customDataInicio || !customDataFim) return;
 
-  const loadDashboardData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const { dataInicio, dataFim } = getDateRange(timePeriod);
+      const { dataInicio, dataFim } = getDateRange();
 
-      const [
-        kpisData,
-        previsaoData,
-        itensData,
-        estatisticasData,
-        metodosData,
-        ordersData,
-      ] = await Promise.all([
-        ApiService.getKPIs(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar KPIs:", err);
-          return null;
-        }),
-        ApiService.getPrevisaoVendas(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar previsão de vendas:", err);
-          return null;
-        }),
-        ApiService.getItensMaisVendidos().catch((err) => {
-          console.error("Erro ao buscar itens mais vendidos:", err);
-          return [];
-        }),
-        ApiService.getEstatisticasVendas(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar estatísticas de vendas:", err);
-          return null;
-        }),
-        ApiService.getMetodosPagamento(dataInicio, dataFim).catch((err) => {
-          console.error("Erro ao buscar métodos de pagamento:", err);
-          return [];
-        }),
-        ApiService.getRecentOrders(10).catch((err) => {
-          console.error("Erro ao buscar pedidos recentes:", err);
-          return { pedidos: [] };
-        }),
-      ]);
+      const [kpisData, previsaoData, itensData, estatisticasData, metodosData] =
+        await Promise.all([
+          ApiService.getKPIs(dataInicio, dataFim).catch((err) => {
+            console.error("Erro ao buscar KPIs:", err);
+            return null;
+          }),
+          ApiService.getPrevisaoVendas(dataInicio, dataFim).catch((err) => {
+            console.error("Erro ao buscar previsão de vendas:", err);
+            return null;
+          }),
+          ApiService.getItensMaisVendidos().catch((err) => {
+            console.error("Erro ao buscar itens mais vendidos:", err);
+            return [];
+          }),
+          ApiService.getEstatisticasVendas(dataInicio, dataFim).catch((err) => {
+            console.error("Erro ao buscar estatísticas de vendas:", err);
+            return null;
+          }),
+          ApiService.getMetodosPagamento(dataInicio, dataFim).catch((err) => {
+            console.error("Erro ao buscar métodos de pagamento:", err);
+            return [];
+          }),
+        ]);
+
+      console.log("📊 Previsão de Vendas:", previsaoData);
+      console.log("📊 Vendas por dia:", previsaoData?.chartData);
 
       setKpis(kpisData);
       setPrevisaoVendas(previsaoData);
       setItensMaisVendidos(itensData);
       setEstatisticasVendas(estatisticasData);
       setMetodosPagamento(metodosData);
-      setRecentOrders(ordersData.pedidos || []);
+      setRecentOrders([]);
     } catch (err) {
       console.error("Erro ao carregar dados do dashboard:", err);
       setError("Erro ao carregar dados. Tente novamente.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [customDataInicio, customDataFim, getDateRange]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   // Preparar dados para gráficos
   const salesByDayData = previsaoVendas?.chartData
@@ -164,20 +152,6 @@ const Dashboard = ({ onBackToHome }) => {
           kurtosis: 0,
         };
 
-  const categoryValues = salesByCategoryData
-    .map((item) => item.value)
-    .filter((v) => v > 0);
-  const categoryStats =
-    categoryValues.length > 0
-      ? DataTransformer.calculateDescriptiveStats(categoryValues)
-      : {
-          mean: 0,
-          median: 0,
-          mode: 0,
-          stdDev: 0,
-          kurtosis: 0,
-        };
-
   // Calcular tendências
   const salesChange = kpis?.totalContas > 0 ? "+12.5" : "0";
   const salesTrendValue = kpis?.totalContas > 0 ? "up" : "neutral";
@@ -226,80 +200,35 @@ const Dashboard = ({ onBackToHome }) => {
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Data Inicial:
+                </label>
+                <input
+                  type="date"
+                  value={customDataInicio}
+                  onChange={(e) => setCustomDataInicio(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Data Final:
+                </label>
+                <input
+                  type="date"
+                  value={customDataFim}
+                  onChange={(e) => setCustomDataFim(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
               <button
-                onClick={() => setTimePeriod("week")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  timePeriod === "week"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                }`}
+                onClick={loadDashboardData}
+                disabled={!customDataInicio || !customDataFim || loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Semana
-              </button>
-              <button
-                onClick={() => setTimePeriod("month")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  timePeriod === "month"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                }`}
-              >
-                Mês
-              </button>
-              <button
-                onClick={() => setTimePeriod("year")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  timePeriod === "year"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                }`}
-              >
-                Ano
-              </button>
-              <button
-                onClick={loadDashboardData} // <-- Chama a função de recarregar
-                disabled={loading} // <-- Desativa se já estiver carregando
-                className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-colors hover:bg-blue-200 disabled:opacity-50"
-                title="Atualizar dados"
-              >
-                {loading ? (
-                  // Ícone de "loading"
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    ></path>
-                  </svg>
-                ) : (
-                  // Ícone de "atualizar"
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    ></path>
-                  </svg>
-                )}
+                {loading ? "Carregando..." : "Atualizar"}
               </button>
             </div>
           </div>
@@ -503,65 +432,6 @@ const Dashboard = ({ onBackToHome }) => {
                     </div>
                   </div>
                 </div>
-
-                {/* Vendas por Categoria */}
-                {categoryValues.length > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <span className="text-indigo-600">🎯</span>
-                      Estatísticas de Métodos de Pagamento
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
-                        <p className="text-sm text-indigo-700 font-medium mb-1">
-                          Média
-                        </p>
-                        <p className="text-2xl font-bold text-indigo-900">
-                          {categoryStats.mean.toFixed(0)}
-                        </p>
-                      </div>
-                      <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
-                        <p className="text-sm text-teal-700 font-medium mb-1">
-                          Mediana
-                        </p>
-                        <p className="text-2xl font-bold text-teal-900">
-                          {categoryStats.median.toFixed(0)}
-                        </p>
-                      </div>
-                      <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4 border border-violet-200">
-                        <p className="text-sm text-violet-700 font-medium mb-1">
-                          Moda
-                        </p>
-                        <p className="text-2xl font-bold text-violet-900">
-                          {categoryStats.mode.toFixed(0)}
-                        </p>
-                      </div>
-                      <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
-                        <p className="text-sm text-amber-700 font-medium mb-1">
-                          Desvio Padrão
-                        </p>
-                        <p className="text-2xl font-bold text-amber-900">
-                          {categoryStats.stdDev.toFixed(0)}
-                        </p>
-                      </div>
-                      <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border border-rose-200">
-                        <p className="text-sm text-rose-700 font-medium mb-1">
-                          Curtose
-                        </p>
-                        <p className="text-2xl font-bold text-rose-900">
-                          {categoryStats.kurtosis.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-rose-600 mt-1">
-                          {categoryStats.kurtosis > 0
-                            ? "Leptocúrtica"
-                            : categoryStats.kurtosis < 0
-                            ? "Platicúrtica"
-                            : "Mesocúrtica"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -612,7 +482,7 @@ const Dashboard = ({ onBackToHome }) => {
               )}
 
               {/* Evolução de Vendas - Linha */}
-              {salesTrendData.length > 0 && (
+              {salesTrendData.length > 1 && previsaoVendas && (
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                   <LineChart
                     data={salesTrendData}
@@ -675,63 +545,65 @@ const Dashboard = ({ onBackToHome }) => {
 
             {/* Tables Section */}
             <div className="grid grid-cols-1 gap-8">
-              {/* Pedidos Recentes */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Pedidos Recentes
-                </h3>
-                {recentOrders.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">
-                            Mesa
-                          </th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">
-                            Itens
-                          </th>
-                          <th className="text-left py-2 px-2 font-semibold text-gray-700">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentOrders.map((order, index) => (
-                          <tr
-                            key={index}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-2 text-gray-900 font-medium">
-                              Mesa {order.mesa?.numero || order.mesa || "N/A"}
-                            </td>
-                            <td className="py-3 px-2 text-gray-600">
-                              {order.itens?.length || 0} itens
-                            </td>
-                            <td className="py-3 px-2">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
-                                  order.status
-                                )}`}
-                              >
-                                {order.status === "pronto"
-                                  ? "Pronto"
-                                  : order.status === "em_preparo"
-                                  ? "Preparando"
-                                  : "Pendente"}
-                              </span>
-                            </td>
+              {/* Pedidos Recentes - Oculto pois dá 404 */}
+              {recentOrders.length > 0 && (
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Pedidos Recentes
+                  </h3>
+                  {recentOrders.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-2 px-2 font-semibold text-gray-700">
+                              Mesa
+                            </th>
+                            <th className="text-left py-2 px-2 font-semibold text-gray-700">
+                              Itens
+                            </th>
+                            <th className="text-left py-2 px-2 font-semibold text-gray-700">
+                              Status
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    Nenhum pedido recente
-                  </p>
-                )}
-              </div>
+                        </thead>
+                        <tbody>
+                          {recentOrders.map((order, index) => (
+                            <tr
+                              key={index}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-3 px-2 text-gray-900 font-medium">
+                                Mesa {order.mesa?.numero || order.mesa || "N/A"}
+                              </td>
+                              <td className="py-3 px-2 text-gray-600">
+                                {order.itens?.length || 0} itens
+                              </td>
+                              <td className="py-3 px-2">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
+                                    order.status
+                                  )}`}
+                                >
+                                  {order.status === "pronto"
+                                    ? "Pronto"
+                                    : order.status === "em_preparo"
+                                    ? "Preparando"
+                                    : "Pendente"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">
+                      Nenhum pedido recente
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

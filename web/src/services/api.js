@@ -166,6 +166,10 @@ class ApiService {
     const response = await api.patch(`/empresas/me`, dados);
     return response.data;
   }
+  static async deleteEmpresa() {
+    const response = await api.delete(`/empresas/me`);
+    return response.data;
+  }
 
   // --- MESAS ---
   static async createMesa(dados) {

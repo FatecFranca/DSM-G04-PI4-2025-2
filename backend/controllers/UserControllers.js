@@ -116,11 +116,13 @@ module.exports = class UserController {
   }
   static async getAllFuncionarios(req, res) {
     const empresaId = req.user.empresa;
+    const gerenteId = req.user.id;
 
     try {
       const funcionarios = await User.find({
         empresa: empresaId,
         ativo: true,
+        _id: { $ne: gerenteId },
       }).select("-senha -pin");
       res.status(200).json({ funcionarios });
     } catch (err) {

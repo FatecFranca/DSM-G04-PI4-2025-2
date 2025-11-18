@@ -7,7 +7,7 @@ import ApiService from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 
 const AdminPage = ({ onBackToHome }) => {
-  const [activeTab, setActiveTab] = useState("overview"); // 'overview', 'users', 'mesas', 'cardapio', 'chamados'
+  const [activeTab, setActiveTab] = useState("overview"); // 'overview', 'users', 'mesas', 'cardapio', 'chamados', 'perfil'
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const { user } = useAuth();
 
@@ -43,6 +43,20 @@ const AdminPage = ({ onBackToHome }) => {
   const [editingMesa, setEditingMesa] = useState(null);
   const [editingProduto, setEditingProduto] = useState(null);
   const [editingFuncionario, setEditingFuncionario] = useState(null);
+
+  // Estados para modal de edição de empresa
+  const [showEmpresaModal, setShowEmpresaModal] = useState(false);
+  const [empresaForm, setEmpresaForm] = useState({
+    nomeEmpresa: "",
+    tipo: "",
+  });
+
+  // Estados para modal de edição de perfil do gerente
+  const [showPerfilModal, setShowPerfilModal] = useState(false);
+  const [perfilForm, setPerfilForm] = useState({
+    nome: "",
+    email: "",
+  });
 
   // Estados para modal de cadastro de funcionário
   const [showFuncionarioModal, setShowFuncionarioModal] = useState(false);
@@ -87,7 +101,7 @@ const AdminPage = ({ onBackToHome }) => {
       const funcionariosArray = funcData.funcionarios || funcData.users || [];
       const mesasArray = mesasData.mesas || [];
       const chamadosArray = chamadosData.chamados || [];
-      
+
       // O backend pode retornar array direto ou objeto { itens: [], cardapios: [] }
       let cardapiosArray = [];
       if (Array.isArray(cardapioData)) {
@@ -159,11 +173,6 @@ const AdminPage = ({ onBackToHome }) => {
       label: "Resolvidos",
       value: chamados.filter((c) => c.status === "resolvido").length,
     },
-  ];
-
-  const mesasStatusData = [
-    { name: "Disponíveis", value: mesas.filter((m) => !m.ocupada).length },
-    { name: "Ocupadas", value: mesas.filter((m) => m.ocupada).length },
   ];
 
   const getStatusBadge = (status) => {
@@ -255,7 +264,8 @@ const AdminPage = ({ onBackToHome }) => {
       alert("Mesa cadastrada com sucesso!");
     } catch (err) {
       console.error("Erro ao criar mesa:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Erro ao cadastrar mesa";
+      const errorMessage =
+        err.response?.data?.message || err.message || "Erro ao cadastrar mesa";
       setError(errorMessage);
     } finally {
       setSubmitting(false);
@@ -306,7 +316,7 @@ const AdminPage = ({ onBackToHome }) => {
   };
 
   // ==================== FUNÇÕES DE EDIÇÃO ====================
-  
+
   // Função para formatar CPF
   const formatCPF = (value) => {
     const numbers = value.replace(/\D/g, "");
@@ -318,7 +328,7 @@ const AdminPage = ({ onBackToHome }) => {
   const validateCPF = (cpf) => {
     const numbers = cpf.replace(/\D/g, "");
     if (numbers.length !== 11) return false;
-    
+
     // Validação dos dígitos verificadores
     let sum = 0;
     for (let i = 0; i < 9; i++) {
@@ -327,7 +337,7 @@ const AdminPage = ({ onBackToHome }) => {
     let digit = 11 - (sum % 11);
     if (digit >= 10) digit = 0;
     if (digit !== parseInt(numbers.charAt(9))) return false;
-    
+
     sum = 0;
     for (let i = 0; i < 10; i++) {
       sum += parseInt(numbers.charAt(i)) * (11 - i);
@@ -335,7 +345,7 @@ const AdminPage = ({ onBackToHome }) => {
     digit = 11 - (sum % 11);
     if (digit >= 10) digit = 0;
     if (digit !== parseInt(numbers.charAt(10))) return false;
-    
+
     return true;
   };
 
@@ -489,7 +499,8 @@ const AdminPage = ({ onBackToHome }) => {
   };
 
   const handleDeleteFuncionario = async (funcionarioId) => {
-    if (!window.confirm("Tem certeza que deseja excluir este funcionário?")) return;
+    if (!window.confirm("Tem certeza que deseja excluir este funcionário?"))
+      return;
 
     try {
       await ApiService.deleteUser(funcionarioId);
@@ -509,7 +520,12 @@ const AdminPage = ({ onBackToHome }) => {
 
     try {
       // Validar campos obrigatórios
-      if (!funcionarioForm.nome || !funcionarioForm.email || !funcionarioForm.cpf || !funcionarioForm.cargo) {
+      if (
+        !funcionarioForm.nome ||
+        !funcionarioForm.email ||
+        !funcionarioForm.cpf ||
+        !funcionarioForm.cargo
+      ) {
         setSubmitting(false);
         setError("Todos os campos são obrigatórios");
         return;
@@ -537,7 +553,117 @@ const AdminPage = ({ onBackToHome }) => {
       alert("Funcionário cadastrado com sucesso!");
     } catch (err) {
       console.error("Erro ao criar funcionário:", err);
-      setError(err.response?.data?.message || err.message || "Erro ao cadastrar funcionário");
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Erro ao cadastrar funcionário"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Funções para gerenciar empresa
+  const handleEditEmpresa = () => {
+    if (empresa) {
+      setEmpresaForm({
+        nomeEmpresa: empresa.nomeEmpresa || empresa.nome || "",
+        tipo: empresa.tipo || "",
+      });
+      setShowEmpresaModal(true);
+    }
+  };
+
+  const handleUpdateEmpresa = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (!empresaForm.nomeEmpresa || !empresaForm.tipo) {
+        setSubmitting(false);
+        setError("Todos os campos são obrigatórios");
+        return;
+      }
+
+      await ApiService.updateEmpresa(empresaForm);
+
+      setShowEmpresaModal(false);
+      await loadData();
+      alert("Empresa atualizada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar empresa:", err);
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Erro ao atualizar empresa"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteEmpresa = async () => {
+    if (
+      !window.confirm(
+        "⚠️ ATENÇÃO: Deseja realmente excluir sua empresa? Esta ação é IRREVERSÍVEL e apagará todos os dados (funcionários, mesas, pedidos, etc.)."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await ApiService.deleteEmpresa();
+      alert(
+        "Empresa excluída com sucesso. Você será redirecionado para a página de login."
+      );
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      window.location.href = "/login";
+    } catch (err) {
+      console.error("Erro ao excluir empresa:", err);
+      alert(
+        err.response?.data?.message || err.message || "Erro ao excluir empresa"
+      );
+    }
+  };
+
+  // Funções para gerenciar perfil do gerente
+  const handleEditPerfil = () => {
+    if (user) {
+      setPerfilForm({
+        nome: user.nome || "",
+        email: user.email || "",
+      });
+      setShowPerfilModal(true);
+    }
+  };
+
+  const handleUpdatePerfil = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (!perfilForm.nome || !perfilForm.email) {
+        setSubmitting(false);
+        setError("Nome e e-mail são obrigatórios");
+        return;
+      }
+
+      await ApiService.updateFuncionario(user.id, {
+        nome: perfilForm.nome,
+        email: perfilForm.email,
+      });
+
+      setShowPerfilModal(false);
+      alert("Perfil atualizado com sucesso!");
+      await loadData();
+    } catch (err) {
+      console.error("Erro ao atualizar perfil:", err);
+      setError(
+        err.response?.data?.message || err.message || "Erro ao atualizar perfil"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -578,8 +704,6 @@ const AdminPage = ({ onBackToHome }) => {
                 </p>
               </div>
             </div>
-
-
           </div>
 
           {/* Tabs */}
@@ -604,6 +728,11 @@ const AdminPage = ({ onBackToHome }) => {
                 id: "cardapio",
                 label: "Cardápio",
                 icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
+              },
+              {
+                id: "perfil",
+                label: "Perfil & Empresa",
+                icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
               },
             ].map((tab) => (
               <button
@@ -767,14 +896,6 @@ const AdminPage = ({ onBackToHome }) => {
                       nameKey="label"
                     />
                   )}
-                  {mesasStatusData.some((d) => d.value > 0) && (
-                    <BarChart
-                      data={mesasStatusData}
-                      title="Status das Mesas"
-                      dataKey="value"
-                      nameKey="name"
-                    />
-                  )}
                 </div>
               </>
             )}
@@ -792,13 +913,28 @@ const AdminPage = ({ onBackToHome }) => {
                 <button
                   onClick={() => {
                     setEditingFuncionario(null);
-                    setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
+                    setFuncionarioForm({
+                      nome: "",
+                      email: "",
+                      cpf: "",
+                      cargo: "",
+                    });
                     setShowFuncionarioModal(true);
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   Novo Funcionário
                 </button>
@@ -934,8 +1070,18 @@ const AdminPage = ({ onBackToHome }) => {
                             className="text-blue-600 hover:text-blue-900 mr-3 p-1 hover:bg-blue-50 rounded transition-colors"
                             title="Editar"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
                             </svg>
                           </button>
                           <button
@@ -943,8 +1089,18 @@ const AdminPage = ({ onBackToHome }) => {
                             className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
                             title="Excluir"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </td>
@@ -1112,8 +1268,18 @@ const AdminPage = ({ onBackToHome }) => {
                             className="text-blue-600 hover:text-blue-900 mr-3 p-1 hover:bg-blue-50 rounded transition-colors"
                             title="Editar"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
                             </svg>
                           </button>
                           <button
@@ -1121,8 +1287,18 @@ const AdminPage = ({ onBackToHome }) => {
                             className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
                             title="Excluir"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </td>
@@ -1297,8 +1473,18 @@ const AdminPage = ({ onBackToHome }) => {
                             className="text-blue-600 hover:text-blue-900 mr-3 p-1 hover:bg-blue-50 rounded transition-colors"
                             title="Editar"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
                             </svg>
                           </button>
                           <button
@@ -1306,8 +1492,18 @@ const AdminPage = ({ onBackToHome }) => {
                             className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
                             title="Excluir"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </td>
@@ -1320,7 +1516,161 @@ const AdminPage = ({ onBackToHome }) => {
           </div>
         )}
 
+        {/* Perfil & Empresa Tab */}
+        {activeTab === "perfil" && (
+          <div className="space-y-6">
+            {/* Informações do Gerente */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Meu Perfil
+              </h2>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome
+                  </label>
+                  <p className="text-lg text-gray-900">
+                    {user?.nome || "Não informado"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cargo
+                  </label>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                    {user?.cargo || "gerente"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={handleEditPerfil}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Editar Meu Perfil
+                </button>
+              </div>
+            </div>
+
+            {/* Informações da Empresa */}
+            {empresa && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg
+                    className="w-6 h-6 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
+                  </svg>
+                  Dados da Empresa
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nome da Empresa
+                    </label>
+                    <p className="text-lg text-gray-900">
+                      {empresa.nomeEmpresa || empresa.nome}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo
+                    </label>
+                    <p className="text-lg text-gray-900">
+                      {empresa.tipo || "Não informado"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CNPJ
+                    </label>
+                    <p className="text-lg text-gray-900">
+                      {empresa.cnpj || "Não informado"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={handleEditEmpresa}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    Editar Dados da Empresa
+                  </button>
+                  <button
+                    onClick={handleDeleteEmpresa}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                    Excluir Empresa
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Relatórios tab removed - content moved to Dashboard */}
       </div>
@@ -1365,7 +1715,10 @@ const AdminPage = ({ onBackToHome }) => {
                 </div>
               )}
 
-              <form onSubmit={editingMesa ? handleUpdateMesa : handleCreateMesa} className="space-y-4">
+              <form
+                onSubmit={editingMesa ? handleUpdateMesa : handleCreateMesa}
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Número da Mesa *
@@ -1638,12 +1991,19 @@ const AdminPage = ({ onBackToHome }) => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900">
-                  {editingFuncionario ? "Editar Funcionário" : "Cadastrar Novo Funcionário"}
+                  {editingFuncionario
+                    ? "Editar Funcionário"
+                    : "Cadastrar Novo Funcionário"}
                 </h3>
                 <button
                   onClick={() => {
                     setShowFuncionarioModal(false);
-                    setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
+                    setFuncionarioForm({
+                      nome: "",
+                      email: "",
+                      cpf: "",
+                      cargo: "",
+                    });
                     setEditingFuncionario(null);
                     setError(null);
                   }}
@@ -1671,7 +2031,14 @@ const AdminPage = ({ onBackToHome }) => {
                 </div>
               )}
 
-              <form onSubmit={editingFuncionario ? handleUpdateFuncionario : handleCreateFuncionario} className="space-y-4">
+              <form
+                onSubmit={
+                  editingFuncionario
+                    ? handleUpdateFuncionario
+                    : handleCreateFuncionario
+                }
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nome Completo *
@@ -1680,7 +2047,10 @@ const AdminPage = ({ onBackToHome }) => {
                     type="text"
                     value={funcionarioForm.nome}
                     onChange={(e) =>
-                      setFuncionarioForm({ ...funcionarioForm, nome: e.target.value })
+                      setFuncionarioForm({
+                        ...funcionarioForm,
+                        nome: e.target.value,
+                      })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Ex: João da Silva"
@@ -1697,7 +2067,10 @@ const AdminPage = ({ onBackToHome }) => {
                     type="email"
                     value={funcionarioForm.email}
                     onChange={(e) =>
-                      setFuncionarioForm({ ...funcionarioForm, email: e.target.value })
+                      setFuncionarioForm({
+                        ...funcionarioForm,
+                        email: e.target.value,
+                      })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Ex: joao@example.com"
@@ -1714,7 +2087,10 @@ const AdminPage = ({ onBackToHome }) => {
                     type="text"
                     value={funcionarioForm.cpf}
                     onChange={(e) =>
-                      setFuncionarioForm({ ...funcionarioForm, cpf: formatCPF(e.target.value) })
+                      setFuncionarioForm({
+                        ...funcionarioForm,
+                        cpf: formatCPF(e.target.value),
+                      })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="000.000.000-00"
@@ -1731,7 +2107,10 @@ const AdminPage = ({ onBackToHome }) => {
                   <select
                     value={funcionarioForm.cargo}
                     onChange={(e) =>
-                      setFuncionarioForm({ ...funcionarioForm, cargo: e.target.value })
+                      setFuncionarioForm({
+                        ...funcionarioForm,
+                        cargo: e.target.value,
+                      })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     required
@@ -1749,7 +2128,12 @@ const AdminPage = ({ onBackToHome }) => {
                     type="button"
                     onClick={() => {
                       setShowFuncionarioModal(false);
-                      setFuncionarioForm({ nome: "", email: "", cpf: "", cargo: "" });
+                      setFuncionarioForm({
+                        nome: "",
+                        email: "",
+                        cpf: "",
+                        cargo: "",
+                      });
                       setEditingFuncionario(null);
                       setError(null);
                     }}
@@ -1766,7 +2150,9 @@ const AdminPage = ({ onBackToHome }) => {
                     {submitting ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        {editingFuncionario ? "Atualizando..." : "Cadastrando..."}
+                        {editingFuncionario
+                          ? "Atualizando..."
+                          : "Cadastrando..."}
                       </>
                     ) : (
                       <>
@@ -1783,7 +2169,262 @@ const AdminPage = ({ onBackToHome }) => {
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        {editingFuncionario ? "Atualizar Funcionário" : "Cadastrar Funcionário"}
+                        {editingFuncionario
+                          ? "Atualizar Funcionário"
+                          : "Cadastrar Funcionário"}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição de Empresa */}
+      {showEmpresaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Editar Dados da Empresa
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowEmpresaModal(false);
+                    setEmpresaForm({ nomeEmpresa: "", tipo: "" });
+                    setError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateEmpresa} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome da Empresa *
+                  </label>
+                  <input
+                    type="text"
+                    value={empresaForm.nomeEmpresa}
+                    onChange={(e) =>
+                      setEmpresaForm({
+                        ...empresaForm,
+                        nomeEmpresa: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: Restaurante Sabor da Casa"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo *
+                  </label>
+                  <select
+                    value={empresaForm.tipo}
+                    onChange={(e) =>
+                      setEmpresaForm({ ...empresaForm, tipo: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    required
+                    disabled={submitting}
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Restaurante">Restaurante</option>
+                    <option value="Bar">Bar</option>
+                    <option value="Cafeteria">Cafeteria</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEmpresaModal(false);
+                      setEmpresaForm({ nomeEmpresa: "", tipo: "" });
+                      setError(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={submitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Atualizando...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Atualizar Empresa
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição de Perfil */}
+      {showPerfilModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Editar Meu Perfil
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowPerfilModal(false);
+                    setPerfilForm({ nome: "", email: "" });
+                    setError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdatePerfil} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={perfilForm.nome}
+                    onChange={(e) =>
+                      setPerfilForm({ ...perfilForm, nome: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: João Silva"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    E-mail *
+                  </label>
+                  <input
+                    type="email"
+                    value={perfilForm.email}
+                    onChange={(e) =>
+                      setPerfilForm({ ...perfilForm, email: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ex: joao@empresa.com"
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPerfilModal(false);
+                      setPerfilForm({ nome: "", email: "" });
+                      setError(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={submitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Atualizando...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Atualizar Perfil
                       </>
                     )}
                   </button>
