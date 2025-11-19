@@ -12,49 +12,6 @@ import {
 } from 'react-native';
 import { cardapioAPI, pedidoAPI, CardapioItem } from '../services/api';
 
-const MOCK_CARDAPIO: CardapioItem[] = [
-  {
-    _id: 'mock1',
-    nome: 'X-Burger',
-    descricao: 'Hambúrguer artesanal com queijo',
-    preco: 25.90,
-    categoria: 'Lanches',
-    disponivel: true,
-  },
-  {
-    _id: 'mock2',
-    nome: 'Coca-Cola 350ml',
-    descricao: 'Refrigerante gelado',
-    preco: 5.90,
-    categoria: 'Bebidas',
-    disponivel: true,
-  },
-  {
-    _id: 'mock3',
-    nome: 'Batata Frita',
-    descricao: 'Porção de batata frita crocante',
-    preco: 12.90,
-    categoria: 'Porções',
-    disponivel: true,
-  },
-  {
-    _id: 'mock4',
-    nome: 'X-Bacon',
-    descricao: 'Hambúrguer com bacon crocante',
-    preco: 28.90,
-    categoria: 'Lanches',
-    disponivel: true,
-  },
-  {
-    _id: 'mock5',
-    nome: 'Suco de Laranja',
-    descricao: 'Suco natural 500ml',
-    preco: 8.90,
-    categoria: 'Bebidas',
-    disponivel: true,
-  },
-];
-
 type OrderItem = {
   item: CardapioItem;
   quantidade: number;
@@ -91,20 +48,15 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
       const data = await cardapioAPI.listar();
       const produtosDisponiveis = data.filter((item: CardapioItem) => item.disponivel);
       
-      if (produtosDisponiveis.length === 0) {
-        Alert.alert('Aviso', 'Nenhum produto disponível no cardápio');
-        setProducts(MOCK_CARDAPIO);
-      } else {
-        setProducts(produtosDisponiveis);
-      }
+      setProducts(produtosDisponiveis);
       
     } catch (error) {
       console.error('Erro ao carregar cardápio:', error);
       Alert.alert(
-        'Erro ao carregar cardápio', 
-        'Usando cardápio de exemplo. Verifique se o backend está rodando.'
+        'Erro', 
+        'Não foi possível carregar o cardápio. Verifique se o backend está rodando.'
       );
-      setProducts(MOCK_CARDAPIO);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -183,6 +135,19 @@ export default function OrderModal({ visible, onClose, tableId, table_id, onConf
           
           {loading ? (
             <ActivityIndicator size="large" color="#0ea5e9" style={{ marginVertical: 20 }} />
+          ) : products.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Sem itens no cardápio</Text>
+              <Text style={styles.emptySubtext}>
+                Adicione produtos no sistema para começar a fazer pedidos
+              </Text>
+              <TouchableOpacity 
+                style={[styles.button, styles.cancelButton, { marginTop: 20 }]} 
+                onPress={onClose}
+              >
+                <Text style={styles.buttonText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <>
 
@@ -436,5 +401,22 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
 });

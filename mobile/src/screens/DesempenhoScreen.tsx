@@ -148,43 +148,90 @@ export default function DesempenhoScreen() {
               </View>
             </View>
 
-            {/* Gráfico de Barras - Vendas */}
+            {/* Gráficos de Vendas */}
             {vendas && vendas.totalPedidos > 0 && (
               <>
                 <View style={styles.divider} />
-                <Text style={styles.chartTitle}>Visão Geral de Vendas</Text>
-                <BarChart
-                  data={{
-                    labels: ['Faturamento', 'Pedidos', 'Ticket Médio'],
-                    datasets: [{
-                      data: [
-                        vendas.faturamentoTotal / 10,
-                        vendas.totalPedidos,
-                        vendas.ticketMedio
-                      ]
-                    }]
-                  }}
-                  width={screenWidth - 72}
-                  height={200}
-                  yAxisLabel="R$ "
-                  yAxisSuffix=""
-                  chartConfig={{
-                    backgroundColor: '#fff',
-                    backgroundGradientFrom: '#fff',
-                    backgroundGradientTo: '#fff',
-                    decimalPlaces: 0,
-                    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                    style: {
-                      borderRadius: 16
-                    },
-                    propsForBackgroundLines: {
-                      strokeDasharray: '',
-                      stroke: '#e5e7eb'
-                    }
-                  }}
-                  style={styles.chart}
-                />
+                
+                {/* Gráfico 1: Faturamento Total */}
+                <Text style={styles.chartTitle}>Faturamento Total</Text>
+                <View style={styles.chartContainer}>
+                  <Text style={styles.chartValueLabel}>
+                    R$ {vendas.faturamentoTotal.toFixed(1)}
+                  </Text>
+                  <BarChart
+                    data={{
+                      labels: ['Faturamento'],
+                      datasets: [{
+                        data: [vendas.faturamentoTotal]
+                      }]
+                    }}
+                    width={screenWidth - 72}
+                    height={180}
+                    yAxisLabel="R$ "
+                    yAxisSuffix=""
+                    fromZero
+                    segments={4}
+                    chartConfig={{
+                      backgroundColor: '#fff',
+                      backgroundGradientFrom: '#fff',
+                      backgroundGradientTo: '#fff',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      style: {
+                        borderRadius: 16
+                      },
+                      propsForBackgroundLines: {
+                        strokeDasharray: '',
+                        stroke: '#e5e7eb'
+                      }
+                    }}
+                    style={styles.chart}
+                  />
+                </View>
+
+                {/* Gráfico 2: Pedidos e Ticket Médio */}
+                <Text style={[styles.chartTitle, { marginTop: 20 }]}>Pedidos e Ticket Médio</Text>
+                <View style={styles.chartContainer}>
+                  <View style={styles.chartValuesRow}>
+                    <Text style={styles.chartValueLabel}>{vendas.totalPedidos}</Text>
+                    <Text style={styles.chartValueLabel}>R$ {vendas.ticketMedio.toFixed(1)}</Text>
+                  </View>
+                  <BarChart
+                    data={{
+                      labels: ['Pedidos', 'Ticket Médio'],
+                      datasets: [{
+                        data: [
+                          vendas.totalPedidos,
+                          vendas.ticketMedio
+                        ]
+                      }]
+                    }}
+                    width={screenWidth - 72}
+                    height={180}
+                    yAxisLabel=""
+                    yAxisSuffix=""
+                    fromZero
+                    segments={4}
+                    chartConfig={{
+                      backgroundColor: '#fff',
+                      backgroundGradientFrom: '#fff',
+                      backgroundGradientTo: '#fff',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      style: {
+                        borderRadius: 16
+                      },
+                      propsForBackgroundLines: {
+                        strokeDasharray: '',
+                        stroke: '#e5e7eb'
+                      }
+                    }}
+                    style={styles.chart}
+                  />
+                </View>
               </>
             )}
           </View>
@@ -444,6 +491,23 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  chartContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chartValueLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#10b981',
+    marginBottom: 8,
+  },
+  chartValuesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 8,
+    paddingHorizontal: 40,
   },
   chart: {
     marginVertical: 8,
