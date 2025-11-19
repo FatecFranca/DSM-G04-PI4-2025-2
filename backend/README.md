@@ -35,6 +35,7 @@ Siga estes passos para rodar o backend localmente:
 3.  **Crie o arquivo `.env`** e insira suas variáveis (exemplo):
 
 JWT_SECRET=sua_chave_secreta_aqui 
+
 DATABASE_URL=mongodb://localhost:27017/clickserve_db
 
 ### C. Rodar
