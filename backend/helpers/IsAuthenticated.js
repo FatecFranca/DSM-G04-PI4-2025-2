@@ -23,8 +23,8 @@ const isAuthenticated = async (req, res, next) => {
   } catch (error) {
 
     if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "Token expirado." });
-    }
+      return res.status(401).json({ message: "Token foi expirado." });
+    } 
 
     return res.status(400).json({ message: "Token inválido." });
   }
