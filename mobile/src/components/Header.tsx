@@ -23,7 +23,7 @@ export default function Header({
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>{title || "ClickServ"}</Text>
+        <Text style={styles.title}>{title || "ClickServe"}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
 

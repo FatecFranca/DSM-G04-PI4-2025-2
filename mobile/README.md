@@ -534,6 +534,26 @@ console.error('Erro:', error);      // Erros (aparecem em vermelho)
 - ✅ Use AsyncStorage apenas para dados essenciais
 - ✅ Otimize renderizações com React.memo quando necessário
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="./assets/images/img1.png" width="200" />
+  <img src="./assets/images/img2.png" width="200" />
+  <img src="./assets/images/img3.png" width="200" />
+  <img src="./assets/images/img4.png" width="200" />
+  <img src="./assets/images/img5.png" width="200" />
+  <img src="./assets/images/img6.png" width="200" />
+  <img src="./assets/images/img7.png" width="200" />
+  <img src="./assets/images/img8.png" width="200" />
+  <img src="./assets/images/img9.png" width="200" />
+  <img src="./assets/images/img10.png" width="200" />
+  <img src="./assets/images/img11.png" width="200" />
+  <img src="./assets/images/img12.png" width="200" />
+  <img src="./assets/images/img13.png" width="200" />
+  <img src="./assets/images/img14.png" width="200" />
+  <img src="./assets/images/img15.png" width="200" />
+</p>
+
 ## 📄 Licença
 
 Este projeto faz parte do Projeto Integrador 4 - DSM Fatec Franca.
@@ -541,6 +561,7 @@ Este projeto faz parte do Projeto Integrador 4 - DSM Fatec Franca.
 ## 👥 Equipe
 
 Desenvolvido pelo Grupo 04 - DSM 2025-2
+Membro responsável pelo Mobile: Thiago Cunha Archete Silva
 
 ---
 
