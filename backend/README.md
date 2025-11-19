@@ -33,13 +33,14 @@ Siga estes passos para rodar o backend localmente:
 1.  Clone o repositório: `git clone https://github.com/FatecFranca/DSM-G04-PI4-2025-2.git`
 2.  Instale as dependências: `npm install`
 3.  **Crie o arquivo `.env`** e insira suas variáveis (exemplo):
+
 JWT_SECRET=sua_chave_secreta_aqui 
 DATABASE_URL=mongodb://localhost:27017/clickserve_db
 
 ### C. Rodar
 * Inicie o servidor em modo desenvolvimento: `npx nodemon app.js`
 * **API estará disponível em:** `http://172.191.224.11:5000`
-* Caso queira rodar local deverá acessar dentro da pasta web/services/api.js e alterar a variavel API_BASE_URL para http://localhost:5000
+* Caso queira rodar local deverá acessar dentro da pasta web/services/api.js e alterar a variavel API_BASE_URL para `http://localhost:5000`
 
 ## 📚 5. Documentação e Testes
 
