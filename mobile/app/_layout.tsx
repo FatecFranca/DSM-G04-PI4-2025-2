@@ -83,7 +83,6 @@ export default function RootLayout() {
         <Stack.Screen name="desempenho" />
         <Stack.Screen name="mesa/[id]" />
         <Stack.Screen name="modal" />
-        <Stack.Screen name="(tabs)" />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>
